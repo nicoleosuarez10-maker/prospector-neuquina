@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prospector – Cuenca Neuquina</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root{--bg:#d9ccb2;--pn:#efe5d0;--ink:#3a281a;--ln:#8c7556;--ac:#b5472a;--ok:#4f7a3a;--bad:#a3281c;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1f1812;--pn:#2d231a;--ink:#ecdfc6;--ln:#7e6a50;--ac:#e8804f;--ok:#8fbf6a;--bad:#ff8a73}}
+:root[data-theme="dark"]{--bg:#1f1812;--pn:#2d231a;--ink:#ecdfc6;--ln:#7e6a50;--ac:#e8804f;--ok:#8fbf6a;--bad:#ff8a73}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 "Segoe UI","Helvetica Neue",Arial,sans-serif}
+#hud{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center;padding:10px 14px;background:var(--pn);border-bottom:2px solid var(--ink)}
+#hud h1{font:700 17px Georgia,serif;margin:0 auto 0 0}
+.st b{font:700 17px "Courier New",monospace}.st small{display:block;color:var(--ln)}
+#rb{width:110px;height:8px;border:1px solid var(--ink);margin-top:3px}#rb i{display:block;height:100%;background:var(--ok)}
+main{display:grid;grid-template-columns:190px minmax(0,1fr) 420px;gap:10px;padding:10px}
+@media(max-width:1000px){main{grid-template-columns:1fr}}
+.pn{background:var(--pn);border:1px solid var(--ln);padding:10px}
+.pn h2{font:700 13px Georgia,serif;margin:0 0 6px;border-bottom:1px solid var(--ln);padding-bottom:4px}
+button{font:inherit;color:var(--ink);background:transparent;border:1px solid var(--ink);padding:6px 8px;margin:0 0 6px;width:100%;text-align:left;cursor:pointer}
+button small{display:block;color:var(--ln)}button:hover,button.on{background:var(--ink);color:var(--pn)}button:hover small,button.on small{color:var(--pn)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--ac);outline-offset:1px}
+canvas{display:block;width:100%;height:auto;border:1px solid var(--ink);background:#000}
+.lay{display:flex;gap:6px;margin-bottom:6px}.lay button{width:auto;margin:0}
+#out{touch-action:none}#kick{margin-top:8px;border:2px solid var(--bad)}#kb{height:14px;border:1px solid var(--ink);margin:6px 0}#kb i{display:block;height:100%;width:0;background:var(--bad)}
+#msg{min-height:44px;margin-top:8px;padding:8px;border-left:4px solid var(--ac);background:var(--pn)}
+#hist{max-height:280px;overflow:auto;margin:6px 0 0;padding:0;list-style:none}
+#hist li{padding:3px 0;border-bottom:1px dotted var(--ln);cursor:pointer}
+input[type=text]{width:100%;padding:5px;background:var(--bg);color:var(--ink);border:1px solid var(--ink);margin-bottom:6px}
+input[type=range]{width:100%}
+#ov,#mn,#br,#fc,#gd{position:fixed;inset:0;background:rgba(30,20,12,.88);display:none;place-items:center;z-index:9;overflow-y:auto;overscroll-behavior:contain}
+#ov>div,#mn>div,#br>div,#fc>div,#gd>div{background:var(--pn);padding:20px;max-width:min(440px,94vw);margin:auto;border:2px solid var(--ac)}#brB,#fcB,#gdX{position:sticky;bottom:0;background:var(--pn);border:2px solid var(--ac);font-weight:700;text-align:center}#ov h2,#mn h2,#br h2,#fc h2,#gd h2{font:700 24px Georgia,serif;margin:0 0 8px}
+.mesa{--pn:#4b2d1d;--ink:#f3e4d0;--ln:#cfae8c;--bg:#38200f;background:#4b2d1d;color:#f3e4d0;border-color:#2b1810}.mesa button{border-color:#f3e4d0}.mesa input[type=range]{accent-color:#e8804f}#ficha{background:#5e3a26;border:1px solid #cfae8c;margin-top:8px}
+#msg2,#jump{display:none}#w3 canvas{touch-action:none}
+
+#mentor{margin-top:6px;padding:6px 8px;border-left:4px solid var(--ok);background:var(--pn);font-size:13px}#mentor .dots{font-size:12px;color:var(--ln)}
+#gdP{font-size:14px;line-height:1.5}#gdP table{border-collapse:collapse;width:100%;font-size:12px}#gdP td{border-top:1px solid var(--ln);padding:3px 4px;vertical-align:top}#gdP dt{font-weight:700;margin-top:6px}#gdP dd{margin:0}
+#gdN{display:flex;gap:6px}#gdN button{margin:0}
+#hud{padding:6px 10px;gap:4px 14px}#hud h1{display:none}.st b{font-size:14px}.st small{font-size:10px}#rb{width:80px}#hud button{padding:4px 8px}
+main{display:flex;flex-direction:column;padding:6px;gap:6px}main>section{order:1}main>.tl{order:2}main>.mesa{order:3;min-height:100vh;min-height:100dvh}
+#w3,#map{width:100%;max-width:calc((100vh - 370px)*1.5);max-width:calc((100dvh - 370px)*1.5);min-width:min(100%,300px);margin-inline:auto}
+.tl{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:6px}.tl h2,.tl p{display:none}
+@media(min-width:900px){.tl{grid-template-columns:repeat(10,minmax(0,1fr))}}
+.tl button{margin:0;padding:4px 2px;text-align:center;font-size:12px;line-height:1.15;width:auto;min-width:0;overflow-wrap:anywhere}.tl button .ic{display:block;font-size:18px}.tl button small{font-size:10px}
+.lay{flex-wrap:wrap;justify-content:center}.lay button{padding:4px 8px;font-size:13px}
+#msg{font-size:13px;min-height:38px;max-height:72px;overflow:auto;margin-top:4px;padding:5px 8px}
+#mentor{font-size:12px;max-height:74px;overflow:auto}
+#msg2{display:block;font-size:13px;margin-bottom:8px;padding:5px 8px;border-left:4px solid var(--ac)}
+#jump{display:block;position:fixed;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:5;width:auto;margin:0;background:var(--ac);color:#fff;border:0;border-radius:20px;padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.mesa canvas{max-width:640px}.mesa .mL,.mesa .mR{min-width:0}
+@media(min-width:900px){.mesa{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-content:start}.mesa #hist{max-height:70vh}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head><body>
+<header id="hud">
+<h1>Prospector · Cuenca Neuquina</h1>
+<div class="st"><small>Nivel · pozos</small><b id="lv"></b></div><div class="st"><small>Capital</small><b id="cap"></b></div>
+<div class="st"><small>Reputación ante el jefe</small><b id="rep"></b><div id="rb"><i></i></div></div>
+<div class="st"><small>Tiempo</small><b id="tm"></b></div>
+<div class="st"><small>Plazo estimado</small><b id="dl"></b></div>
+<button style="width:auto;margin:0" onclick="showMenu()">Nueva campaña</button><button style="width:auto;margin:0" onclick="gdOpen('guide')">Cómo jugar</button><button style="width:auto;margin:0" onclick="gdOpen('gloss')">Glosario</button><button id="snd" style="width:auto;margin:0" onclick="toggleSnd()" aria-label="Sonido">🔊</button><button id="revB" style="width:auto;margin:0;display:none" onclick="$('ov').style.display='grid'">Ver resultado</button>
+</header>
+<main>
+<aside class="pn tl"><h2>Herramientas</h2>
+<button id="b-grav" onclick="mode('grav')" title="Gravimetría · 4 puntos · máx. 25 % · 5 días"><span class="ic">⚖️</span>Gravimetría<small>5 días</small></button>
+<button id="b-mag" onclick="mode('mag')" title="Magnetometría · 4 puntos · máx. 25 % · 5 días"><span class="ic">🧲</span>Magnetometría<small>5 días</small></button>
+<button id="b-geo" onclick="mode('geo')" title="Geoquímica de superficie · círculo chico · 1 día cada 5 puntos"><span class="ic">🧪</span>Geoquímica<small>1 d / 5 pts</small></button>
+<button id="b-out" onclick="mode('out')" title="Inspeccionar afloramiento · activo hasta 5 usos · 1 día"><span class="ic">🪨</span>Afloramiento<small>1 d / 5 usos</small></button>
+<button id="b-seis" onclick="mode('seis')" title="Sísmica 2D · 2 clics · US$ 40 k · 15 días"><span class="ic">📈</span>Sísmica 2D<small>15 días</small></button>
+<button id="b-3d" onclick="mode('3d')" title="Sísmica 3D · 4 puntos · máx. 34 % · US$ 140 k · 30 días"><span class="ic">🧊</span>Sísmica 3D<small>30 días</small></button>
+<button id="b-drill" onclick="mode('drill')" title="Perforación de exploración · US$ 180 k · 10 días · mide C.O.T. y Ro"><span class="ic">⛏️</span>Exploración<small>10 días</small></button>
+<button id="b-dev" onclick="mode('dev')" title="Perforación de explotación · trampa explorada · US$ 350 k · 15 días"><span class="ic">🛢️</span>Explotación<small>15 días</small></button>
+<button id="b-poi" onclick="mode('poi')" title="Punto de interés · 1 día cada 2 puntos"><span class="ic">📍</span>Interés<small>1 d / 2 pts</small></button>
+<button onclick="consult()" title="Consultor geológico · US$ 15 k · 25 a 50 días"><span class="ic">🎓</span>Consultor<small>25–50 d</small></button>
+<p style="color:var(--ln);margin:0">Meta del nivel: explorá todas las trampas, evaluá la rentabilidad y extraé las rentables, sin fracturas ni blowouts. Al superar el nivel, capital y reputación suben 10 %.</p>
+</aside>
+<section>
+<div class="lay"><button id="l-terrain" onclick="layer('terrain')">Superficie</button><button id="l-grav" onclick="layer('grav')">Mapa gravimétrico</button><button id="l-mag" onclick="layer('mag')">Mapa magnético</button><button id="l-geo" onclick="layer('geo')">Mapa de geoquímica de superficie</button></div>
+<div class="lay"><button id="v-surf" class="on" onclick="reset3()">Restablecer vista</button><button onclick="rot3(-1)" aria-label="Girar el mapa a la izquierda">⟲ Girar</button><button onclick="rot3(1)" aria-label="Girar el mapa a la derecha">Girar ⟳</button><button onclick="zoom3(-1)" aria-label="Acercar">＋</button><button onclick="zoom3(1)" aria-label="Alejar">－</button></div>
+<canvas id="map" width="624" height="416" aria-label="Mapa de superficie"></canvas>
+<div id="w3" style="display:none;aspect-ratio:3/2;border:1px solid var(--ink);background:#2a211a"></div>
+<div id="msg" role="status"></div><div id="mentor"></div>
+</section>
+<aside class="pn mesa"><div class="mL"><div id="msg2"></div><h2 id="oTitle">Mesa de trabajo</h2>
+<canvas id="out" width="400" height="270" aria-label="Sísmica y logs"></canvas>
+<div id="ficha" class="pn" style="display:none"><h2 id="fcT"></h2><div id="fcP"></div></div>
+<div id="kick" class="pn" style="display:none"><h2>Control de pozo · presión anormal</h2><label>Peso del lodo: <b id="mv">1.20</b> g/cc<input type="range" id="mud" min="1" max="2" step="0.01" value="1.2"></label><div id="kb" aria-label="Influjo de gas"><i id="kbar"></i></div><button id="bop">Cerrar BOP<small>seguro, pero cuesta US$ 60 k y 24 h</small></button></div>
+<label>Filtro de amplitud: <b id="thrV">0 %</b> (0 = mostrar todo)<input type="range" id="thr" min="0" max="95" value="0"></label><div id="thrInfo" style="font-size:12px;color:var(--ln)">Sin filtro: se ven todos los reflectores. Subí el umbral para dejar en color solo los más intensos y atenuar el resto en gris.</div>
+<label id="slw" style="display:none">Corte vertical del cubo (90°): posición<input type="range" id="sl" min="0" max="27" value="12"></label>
+</div><div class="mR"><h2 style="margin-top:10px">Bitácora de operaciones</h2><div id="hsum" style="font-size:12px"></div><div style="color:var(--ln);font-size:12px">Tocá un pozo del mapa (sin herramienta activa) o su registro para ver la ficha técnica.</div><ul id="hist"></ul></div></aside>
+</main>
+<button id="jump" onclick="jump()">Mesa de trabajo ↓</button>
+<div id="mn" role="dialog"><div><h2>Prospector · Cuenca Neuquina</h2><p>Elegí la dificultad de la campaña. Cada nivel superado conserva tu capital y reputación con +10 %.</p>
+<button onclick="pick('easy')">Explorador<small>Zonas someras, US$ 2,9 M, plazo estimado de 150 días (+40 por trampa extra), presión anormal poco frecuente e influjo lento. Ideal para aprender.</small></button>
+<button onclick="pick('normal')">Prospector<small>US$ 2,25 M, plazo estimado de 120 días (+40 por trampa extra), presión anormal habitual. Es la experiencia de referencia.</small></button>
+<button onclick="pick('hard')">Veterano<small>US$ 1,65 M, plazo estimado de 90 días (+40 por trampa extra), una trampa extra, presión frecuente e influjo veloz.</small></button></div></div>
+<div id="br" role="dialog"><div><h2 id="brT"></h2><div id="brP"></div><button id="brB" style="margin-top:10px">Comenzar el nivel</button></div></div>
+<div id="gd" role="dialog"><div><h2 id="gdT"></h2><div id="gdP"></div><div id="gdN" style="margin-top:10px"><button id="gdPrev">◀ Anterior</button><button id="gdNext">Siguiente ▶</button></div><button id="gdX" style="margin-top:6px">Cerrar</button></div></div>
+<div id="ov" role="dialog"><div><h2 id="ovT"></h2><p id="ovP"></p><button id="ovR" style="margin-top:6px">Revisar la partida</button>
+<button id="ovB" style="margin-top:6px">Continuar</button></div></div>
+<script>
+const W=48,H=32,C=13,$=id=>$$[id]||($$[id]=document.getElementById(id)),$$={};
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const G=(o,x,y)=>Math.exp(-((x-o.x)**2+(y-o.y)**2)/(o.r*o.r));
+const NZ=(x,y)=>.12*(Math.sin(x*.4+1)*Math.cos(y*.35)+Math.sin(x*.15+y*.2+2));
+const TG=(x,y)=>S.trs.reduce((s,t)=>s+G(t,x,y),0);const RESD={
+ tor:{n:'Fm. Tordillo',t:'sst',h:[25,80],p:[11,17],src:'vm',above:1,seal:{n:'sello diagenético de Catriel',l:'dst',h:[10,35]}},
+ qui:{n:'Fm. Quintuco–Loma Montosa',t:'carb',h:[20,60],p:[8,15],src:'vm',seal:{n:'pelitas marinas',l:'pel',h:[30,100]}},
+ mul:{n:'Fm. Mulichinco',t:'sst',h:[8,20],p:[10,16],src:'vm',seal:{n:'pelitas marinas de la Fm. Agrio',l:'pel',h:[30,100]}},
+ avi:{n:'Mb. Avilé (Fm. Agrio)',t:'sst',h:[10,40],p:[12,18],src:'ag',seal:{n:'pelitas del Mb. Agua de la Mula',l:'pel',h:[30,90]}},
+ tro:{n:'Mb. Troncoso (Fm. Huitrín)',t:'sst',h:[10,60],p:[12,18],src:'ag',seal:{n:'anhidrita del Troncoso Superior (Huitrín)',l:'anh',h:[5,20]}},
+ laj:{n:'Fm. Lajas',t:'sst',h:[20,80],p:[8,15],cuyo:1,src:'lm',seal:{n:'evaporitas de la Fm. Tábanos',l:'anh',h:[10,40]}},
+ lot:{n:'Fm. Lotena',t:'sst',h:[20,60],p:[10,16],cuyo:1,src:'lm',seal:{n:'Fm. Auquilco (yeso/anhidrita)',l:'anh',h:[100,200]}},
+ lam:{n:'Fm. La Manga',t:'carb',h:[15,50],p:[7,13],src:'lm',seal:{n:'Fm. Auquilco (yeso/anhidrita)',l:'anh',h:[100,200]}},
+ pre:{n:'Ciclo Precuyano (volcánico fracturado)',t:'volc',h:[15,50],p:[6,11],src:'lm',above:1,seal:{n:'pelitas lacustres',l:'pel',h:[30,80]}}};
+const SRCD={vm:{n:'Fm. Vaca Muerta',toc:[2,12],k:'tipo II marino, predominantemente líquido',th:{plat:[5,25],eng:[120,300],dor:[10,50],sur:[60,250],chi:[60,200],far:[100,300]}},
+ lm:{n:'Fm. Los Molles',toc:[.8,2],k:'mezcla II/III, petróleo parafínico liviano y condensado',th:[100,350]},
+ ag:{n:'Fm. Agrio',toc:[1.5,4.5],k:'tipo II marino, líquido',th:[60,150]}};
+const PROF=[
+ {k:'plat',name:'Plataforma Nororiental (Catriel)',z0:[1000,1400],td:2000,rel:[30,150],lrel:[60,120],oil:.9,api:[22,32],traps:['rollover','cierre contra falla','estratigráfica (cuña)'],res:['tor','qui','pre'],desc:'Cobertura sedimentaria de unos 2.000 m, pliegues supratenues de escaso relieve, anticlinales tipo rollover y cierres contra falla. El escaso soterramiento preserva buena petrofísica; Vaca Muerta casi no se desarrolla.'},
+ {k:'eng',name:'Engolfamiento Neuquino',z0:[2300,3000],td:3500,rel:[40,160],lrel:[80,150],oil:.6,api:[30,40],traps:['cierre en cuatro direcciones','rollover','cierre contra falla'],res:['tor','qui','lot'],desc:'Depocentro con registro sedimentario muy completo y espeso; pliegues supratenues y narices estructurales de escaso relieve sobre fallas extensionales. Por debajo de unos 3.000 m las areniscas de Cuyo pierden porosidad y permeabilidad.'},
+ {k:'dor',name:'Dorsal de Huincul',z0:[1500,2200],td:3000,rel:[200,450],lrel:[150,250],oil:.8,api:[28,38],traps:['estructura de inversión','cierre contra falla','estratigráfica (cuña)'],res:['laj','lot','pre'],desc:'Falla de desplazamiento lateral dextrógiro de más de 200 km (OSO–ENE), con estructuras compresivas y extensionales, inversión tectónica y columna condensada. Hay riesgo de perder trampas y sellos por reactivación de fallas.'},
+ {k:'sur',name:'Sur de la Dorsal',z0:[1800,2500],td:3200,rel:[60,200],lrel:[100,200],oil:.7,api:[30,40],traps:['cierre en cuatro direcciones','cierre contra falla','estratigráfica (cuña)'],res:['tor','qui','laj'],desc:'Los espesores de Vaca Muerta y Quintuco aumentan hacia el sur, y también su distribución areal; la Fm. Tordillo pierde espesor y puede faltar.'},
+ {k:'chi',name:'Alto de los Chihuidos',z0:[1700,2400],td:3000,rel:[150,400],lrel:[100,200],oil:.8,api:[30,40],traps:['anticlinal de gran radio','cierre contra falla'],res:['lam','mul','tro'],desc:'Gran anticlinorio de rumbo meridiano (~70 km), con flanco occidental empinado y flanco oriental suave (2° a 3°). Los pozos de la zona llegaron a las calizas de La Manga.'},
+ {k:'far',name:'Faja plegada y corrida del Agrio',z0:[1500,2600],td:3200,rel:[600,1300],lrel:[200,400],oil:.55,api:[34,44],traps:['anticlinal elongado','cierre contra falla de flanco','escama de corrimiento'],res:['mul','avi','tro'],desc:'Deformación intensa: anticlinales y sinclinales elongados con fallas de flanco y ejes meridianos; la sal de Huitrín forma un nivel de despegue. Hay riesgo de alteración de trampas y sellos; los hidrocarburos incluyen petróleos livianos, gas y condensado.'}];
+const zTop=(x,y)=>S.z0-S.trs.reduce((s,t)=>s+t.rel*G(t,x,y),0)-S.lrel*G(S.leak,x,y);
+function colP(x,y){let b=null,bg=.25;S.trs.forEach(t=>{const g=G(t,x,y);if(g>bg){bg=g;b=t}});return b?b.col:S.col}
+const ivOf=(R,c)=>c.above?{src:[R-c.sh-c.sth,R-c.sh],seal:[R-c.sh,R],res:[R,R+c.rh]}:{seal:[R-c.sh,R],res:[R,R+c.rh],src:[R+c.rh,R+c.rh+c.sth]};
+const colIv=(x,y)=>ivOf(zTop(x,y),colP(x,y)),hcAt=(x,y)=>{const t=S.trs.find(t=>G(t,x,y)>.3);return !!t&&!t.nocharge};
+const q=o=>'sector '+(o.y<H/2?'norte':'sur')+(o.x<W/2?'oeste':'este');
+const fmt=n=>'US$ '+Math.round(n/1000).toLocaleString('es-AR')+' k';
+const STM=[[40,60,200],[40,190,220],[80,190,90],[240,220,60],[230,60,40],[200,90,210]];
+const STS=[[20,30,110],[70,170,220],[235,235,225],[240,170,70],[200,40,30]];
+function lc(st,t){t=Math.max(0,Math.min(.999,t))*(st.length-1);const i=t|0,f=t-i,a=st[i],b=st[i+1];return[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f]}
+let S,terr=document.createElement('canvas');terr.width=624;terr.height=416;
+const map=$('map'),mc=map.getContext('2d'),out=$('out'),oc=out.getContext('2d');
+
+function buildTerrain(){const c=terr.getContext('2d'),w=624,h=416,im=c.createImageData(w,h);
+ const mkN=g=>{const a=[];for(let i=0;i<g*g;i++)a.push(Math.random());const q=t=>t*t*(3-2*t);return(x,y)=>{x=((x%1)+1)%1*g;y=((y%1)+1)%1*g;const xi=x|0,yi=y|0,fx=q(x-xi),fy=q(y-yi),p=(i,j)=>a[(j%g)*g+(i%g)];return(p(xi,yi)*(1-fx)+p(xi+1,yi)*fx)*(1-fy)+(p(xi,yi+1)*(1-fx)+p(xi+1,yi+1)*fx)*fy}};
+ const n1=mkN(4),n2=mkN(10),n3=mkN(26),n4=mkN(70),mx=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
+ const ang=Math.random()*.6+.3,rv=Math.random()*.3+.35,rv2=Math.random()*.25+.1;
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){const u=x/w,v=y/h,e=.5*n1(u,v)+.3*n2(u,v),t=.25+.75*(.6*n2(u,v)+.4*n3(u,v));
+  let col=mx([128,116,98],[192,174,144],t);
+  const sh=1+(e-(.5*n1(u+.004,v+.003)+.3*n2(u+.004,v+.003)))*9;
+  if(n1(u+.3,v+.2)>.6){const b=Math.sin((u*Math.cos(ang)+v*Math.sin(ang))*40+n2(u,v)*7);if(b>.86)col=mx(col,[160,96,66],.6);else if(b>.6)col=mx(col,[92,86,76],.5);else if(b<-.9)col=mx(col,[206,182,146],.5)}
+  const cx=rv+.07*Math.sin(v*9+1)+.04*Math.sin(v*23)+.05*(n2(.5,v)-.5),d=Math.abs(u-cx)*w,wd=2.5+3*n3(u,v);
+  if(d<wd)col=mx(col,[216,203,180],.8);else if(d<wd+1.3)col=mx(col,[116,100,84],.5);
+  const cx2=rv2+.09*Math.sin(v*6+2)+.03*(n3(.3,v)-.5),d2=Math.abs(u-cx2)*w;if(d2<1.8)col=mx(col,[208,194,170],.7);
+  const dens=.03+.09*n3(u*1.3,v*1.3)*(n1(u,v)>.4?1:.5);if(Math.random()<dens)col=mx(col,[56,54,38],.85);
+  const i=(y*w+x)*4,nz=(Math.random()-.5)*12;im.data[i]=col[0]*sh+nz;im.data[i+1]=col[1]*sh+nz;im.data[i+2]=col[2]*sh+nz;im.data[i+3]=255}
+ c.putImageData(im,0,0);c.strokeStyle='rgba(224,214,194,.85)';c.lineWidth=1.6;
+ for(let k=0;k<3;k++){let x=rnd(0,w),y=rnd(0,h);c.beginPath();c.moveTo(x,y);for(let n=0;n<5;n++){const nx=x+rnd(-140,140),ny=y+rnd(-100,100);c.quadraticCurveTo(x+rnd(-60,60),y+rnd(-60,60),nx,ny);x=nx;y=ny}c.stroke()}
+ const ys=rnd(.4,.7)*h;c.lineWidth=1.2;c.beginPath();c.moveTo(0,ys);c.lineTo(w,ys+rnd(-12,12));c.stroke()}
+function newGame(cr){
+ const k=cr?1.1:1,dk=cr?cr.dif:DK,D=DIF[dk],LV=cr?cr.lvl+1:1;S={dif:dk,lvl:LV,rm:cr?cr.rm*k:100,cap:cr?cr.cap*k:D.cap,rep:cr?cr.rep*k:D.rep,h:cr?cr.h:0,deadline:(cr?cr.h:0)+Math.round(D.days*Math.max(.75,1-.04*(LV-1)))*24,wells:[],boxes:[],nOut:0,nPoi:0,les:new Set(),steps:[],hist:[],pois:[],lines:[],grav:null,mag:null,layer:'terrain',mode:'sel',pts:[],seis:null,over:false,busy:false,leak:{x:rnd(30,40),y:rnd(4,9),r:Math.min(5.5,4+.25*(LV-1))},ign:{x:rnd(32,40),y:rnd(22,27),r:Math.min(4.5,3+.25*(LV-1))}};S.pk=(LV-1)%6;S.prof=PROF[S.pk];S.z0=Math.round(rnd(S.prof.z0[0],S.prof.z0[1]));S.lrel=rnd(S.prof.lrel[0],S.prof.lrel[1]);S.ign.z=Math.round(S.z0*.62/10)*10;S.ign.res=Math.random()<.25;S.col={rt:'sst',rh:40,sh:30,sth:150,sl:'pel',above:false,resN:'areniscas regionales',sealN:'pelitas regionales',srcN:'lutitas regionales'};S.trs=mkTraps(Math.min(5,trapsFor(S.lvl)+D.ex));S.tr=S.trs[0];S.deadline+=40*24*(S.trs.length-1);S.gO={l:[rnd(-3,3),rnd(-3,3)],f:Array.from({length:S.lvl>2?3:2},()=>({x:rnd(4,44),y:rnd(4,28),r:3,a:rnd(.4,.8)}))};S.trs.forEach(t=>{t.go=[rnd(-2.5,2.5),rnd(-2.5,2.5)];t.gq=Math.random()<.3?.15:rnd(.5,1)});
+ S.outc=mkOut();$('slw').style.display='none';$('revB').style.display='none';$('ficha').style.display='none';$('ov').style.display='none';renderLog();$('thr').value=0;oc.clearRect(0,0,400,270);oc.fillStyle='#0b1622';oc.fillRect(0,0,400,270);
+ say('Nivel '+S.lvl+': hay '+S.trs.length+' trampa(s) por evaluar; alguna puede no haber recibido hidrocarburos. Geólogo veterano: "Pibe, empezá barato. Un estudio potencial (gravimetría o magnetometría) te dice dónde mirar; no gastes en pozos a ciegas. Un pico magnético fuerte suele ser roca ígnea, no petróleo."');
+ layer('terrain');view('surf',1);hud();brief()}
+
+let AC=null,MG=null,MUTE=false,AMB=null;
+function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();MG=AC.createGain();MG.gain.value=MUTE?0:.55;MG.connect(AC.destination)}catch(e){return null}}if(AC.state=='suspended')AC.resume();return AC}
+function nb(d){const b=AC.createBuffer(1,Math.max(1,AC.sampleRate*d|0),AC.sampleRate),a=b.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1;return b}
+function sN(t,d,ty,f0,f1,v,Q){const c=AC,t0=c.currentTime+t,s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=nb(d);f.type=ty;f.Q.value=Q||1;f.frequency.setValueAtTime(f0,t0);f.frequency.linearRampToValueAtTime(f1,t0+d);g.gain.setValueAtTime(.0001,t0);g.gain.linearRampToValueAtTime(v,t0+Math.min(.03,d/3));g.gain.exponentialRampToValueAtTime(.0001,t0+d);s.connect(f);f.connect(g);g.connect(MG);s.start(t0)}
+function sT(t,d,ty,f0,f1,v){const c=AC,t0=c.currentTime+t,o=c.createOscillator(),g=c.createGain();o.type=ty;o.frequency.setValueAtTime(f0,t0);o.frequency.exponentialRampToValueAtTime(Math.max(1,f1),t0+d);g.gain.setValueAtTime(.0001,t0);g.gain.linearRampToValueAtTime(v,t0+Math.min(.03,d/3));g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(MG);o.start(t0);o.stop(t0+d+.05)}
+function sfx(k,a){if(MUTE||!ac())return;switch(k){
+ case'click':sT(0,.05,'square',900,500,.05);break;
+ case'instr':[0,.12,.24].forEach((t,i)=>sT(t,.09,'sine',1200+i*300,1200+i*300,.07));break;
+ case'soil':for(let i=0;i<5;i++)sN(i*.14,.1,'bandpass',900+Math.random()*500,500,.35,2);break;
+ case'vibro':for(let i=0;i*.8<(a||3);i++){sT(i*.8,.7,'sawtooth',14,75,.2);sN(i*.8,.7,'lowpass',160,80,.18)}break;
+ case'hammer':[0,.35,.7].forEach(t=>{sN(t,.08,'bandpass',2200,1500,.5,4);sT(t,.12,'sine',480,300,.12)});break;
+ case'pin':sT(0,.12,'sine',700,1400,.12);break;
+ case'paper':for(let i=0;i<4;i++)sN(i*.09,.08,'highpass',3500,5000,.18);break;
+ case'drill':sN(0,1.8,'lowpass',250,180,.5);sT(0,1.8,'sawtooth',48,56,.16);for(let i=0;i<8;i++)sN(i*.22,.07,'bandpass',1800,1200,.3,3);break;
+ case'alarm':for(let i=0;i<3;i++){sT(i*.3,.2,'square',880,880,.06);sT(i*.3+.1,.15,'square',660,660,.04)}break;
+ case'bop':sN(0,.35,'bandpass',900,300,.7,6);sT(0,.4,'square',140,70,.15);break;
+ case'blow':sN(0,2.2,'lowpass',1800,150,.9);sT(0,1.6,'sawtooth',70,25,.4);break;
+ case'ok':sT(0,.15,'sine',523,523,.1);sT(.15,.25,'sine',784,784,.1);break;
+ case'chime':[523,659,784,1047].forEach((f,i)=>sT(i*.13,.4,'sine',f,f,.1));break;
+ case'dry':sT(0,.5,'sine',140,40,.3);sN(0,.4,'lowpass',300,80,.4);break;
+ case'pump':for(let i=0;i<4;i++){sT(i*.55,.22,'sine',90,45,.35);sN(i*.55,.15,'lowpass',400,100,.25)}break;
+ case'drone':{const d=a||4;sT(0,d,'sawtooth',150,158,.045);sT(0,d,'sawtooth',156,167,.04);sT(0,d,'square',300,314,.018);sN(0,d,'bandpass',2000,2600,.1,4);sT(0,.7,'sine',350,900,.03);break}
+ case'step':{const f=1500+Math.random()*900;sN(0,.1,'bandpass',f,f/2,.32,1.5);sN(.015,.07,'lowpass',700,300,.22);sT(0,.07,'sine',95+Math.random()*20,55,.12);break}
+ case'hiss':sN(0,1.6,'highpass',2500,4500,.28);break;
+ case'blip':sT(0,.1,'sine',1000,1500,.08);sT(.1,.12,'sine',1500,1000,.08);break;
+ case'buzz':sT(0,.25,'square',120,110,.1);break;
+ case'win':[523,659,784,1047,1319].forEach((f,i)=>sT(i*.12,.35,'triangle',f,f,.12));break;
+ case'lose':[392,330,262,196].forEach((f,i)=>sT(i*.22,.4,'triangle',f,f*.97,.12));break}}
+function snd(type,w){const m={'Gravimetría':'instr','Magnetometría':'instr','Geoquímica':'soil','Afloramiento':'hammer','Punto de interés':'pin','Consultor':'paper','Sísmica 2D':'blip','Sísmica 3D':'blip'}[type];if(m)sfx(m);else if(type=='Pozo'&&w)sfx(w.kind=='dev'?(w.type=='oil'?'pump':'hiss'):w.blow?'blow':w.ok?'chime':'dry')}
+function ambient(){if(AMB||!ac())return;const c=AC,s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain(),l=c.createOscillator(),lg=c.createGain();s.buffer=nb(4);s.loop=true;f.type='lowpass';f.frequency.value=420;g.gain.value=.05;l.frequency.value=.13;lg.gain.value=220;l.connect(lg);lg.connect(f.frequency);s.connect(f);f.connect(g);g.connect(MG);s.start();l.start();AMB=1;
+ const ch=()=>{if(!MUTE){const b=2800+Math.random()*1500;for(let i=0;i<2+(Math.random()*3|0);i++)sT(i*.11,.08,'sine',b,b*1.3,.025)}setTimeout(ch,7000+Math.random()*9000)};setTimeout(ch,4000)}
+function toggleSnd(){MUTE=!MUTE;ac();if(MG)MG.gain.value=MUTE?0:.55;$('snd').textContent=MUTE?'🔇':'🔊';if(!MUTE)ambient()}
+function say(t){$('msg').textContent=t;$('msg2').textContent=t}
+const mob=()=>true;
+function goMesa(){if(mob())document.querySelector('.mesa').scrollIntoView({behavior:'smooth',block:'start'})}
+function goMap(){if(mob())scrollTo({top:0,behavior:'smooth'})}
+function jump(){scrollY>200?goMap():goMesa()}
+addEventListener('scroll',()=>{$('jump').textContent=scrollY>200?'Terreno ↑':'Mesa de trabajo ↓'});
+function hud(){$('lv').textContent=S.lvl+' · '+S.trs.filter(res).length+'/'+S.trs.length+' · '+dif().n;$('cap').textContent=fmt(S.cap);$('rep').textContent=Math.round(S.rep)+' / '+Math.round(S.rm);$('rb').firstChild.style.width=Math.min(100,S.rep/S.rm*100)+'%';
+ $('tm').textContent='Día '+(1+Math.floor(S.h/24))+', '+String(S.h%24).padStart(2,'0')+':00';{const L=Math.ceil((S.deadline-S.h)/24);$('dl').textContent=L>=0?L+' días':'+'+(-L)+' d excedidos';$('dl').style.color=L<0?'var(--bad)':''}draw();mentor()}
+function spend(h,c){if(S.over){if(S.review)say('Partida finalizada (modo revisión): explorá el terreno, la bitácora y las fichas. Usá «Ver resultado» arriba para continuar.');return false}if(S.busy)return false;if(S.cap<c){say('Capital insuficiente para esta operación.');sfx('buzz');return false}
+ S.cap-=c;S.last={c,h};S.cap+=S.wells.reduce((s,w)=>s+(w.prod?w.rate:0),0)*h/24;const o0=Math.max(0,Math.floor((S.h-S.deadline)/24));S.h+=h;const o1=Math.max(0,Math.floor((S.h-S.deadline)/24));if(o1>o0){const pc=(o1-o0)*15000;S.cap-=pc;add('Plazo excedido',(o1-o0)+' día(s) sobre el plazo estimado',null,pc,0)}hud();chk();return !S.over}
+function chk(){if(S.over)return;let m=null;
+ if(S.cap<=0)m=['Game Over','Te quedaste sin capital. El proyecto se cancela.'];
+ else if(S.rep<=0)m=['Game Over','El jefe perdió la confianza en vos y te desafectó del proyecto.'];
+ else if(S.trs.every(res))m=['Nivel '+S.lvl+' superado','Exploraste todas las trampas y pusiste en producción las rentables. El jefe te asigna una cuenca más exigente ('+Math.min(5,trapsFor(S.lvl+1)+dif().ex)+' trampas, más presión anormal y menos evidencia de superficie): capital y reputación suben 10 %.'+lesTxt(),1];
+ 
+ if(m){S.over=true;sfx(m[2]?'win':'lose');$('ovT').textContent=m[0];$('ovP').textContent=m[1];$('ovB').textContent=m[2]?'Siguiente nivel (+10 %)':'Empezar otra campaña';$('ovB').onclick=m[2]?()=>newGame(S):showMenu;$('ov').style.display='grid';if(m[2]){const cur=S;let c=15;const iv=setInterval(()=>{if(S!==cur||!S.over||S.review){clearInterval(iv);return}c--;$('ovB').textContent='Siguiente nivel (+10 %) · '+c+' s';if(c<=0){clearInterval(iv);newGame(S)}},1000)}}}
+let LOG=[];
+function add(type,txt,img,c,hh,w){S.nst=(S.nst||0)+1;const L=c!=null?{c,h:hh||0}:(S.last||{c:0,h:0});if(c==null)S.last=null;
+ const e={lvl:S.lvl,t:S.h,type,txt,img,c:L.c,hh:L.h,cap:S.cap,rep:S.rep,w};LOG.push(e);snd(type,w);S.hist.push(e);renderLog()}
+function renderLog(){const ul=$('hist');ul.innerHTML='';let tc=0,th=0;LOG.forEach(e=>{tc+=e.c;th+=e.hh});
+ $('hsum').textContent=LOG.length+' registros · invertido '+fmt(tc)+' · '+Math.round(th/24)+' días de trabajo';
+ for(let i=LOG.length-1;i>=0;i--){const e=LOG[i],li=document.createElement('li');li.innerHTML='<b></b><br><small></small>';
+  li.firstChild.textContent='N'+e.lvl+' · Día '+(1+Math.floor(e.t/24))+' '+String(e.t%24).padStart(2,'0')+':00 · '+e.type+': '+e.txt;
+  li.lastChild.textContent=(e.c?'−'+fmt(e.c)+' · ':'')+(e.hh?(e.hh/24).toFixed(e.hh%24?1:0)+' días · ':'')+'Capital '+fmt(e.cap)+' · Reputación '+Math.round(e.rep);
+  li.onclick=()=>{if(e.w)fichaShow(e.w);else if(e.img){const im=new Image();im.onload=()=>oc.drawImage(im,0,0);im.src=e.img}};ul.appendChild(li)}}
+function mkFx(w,gr,rs,hc,td){const R=zTop(w.x,w.y),ign=G(S.ign,w.x,w.y)>.3,lk=G(S.leak,w.x,w.y)>.3,T=S.trs.find(t=>G(t,w.x,w.y)>.3);
+ const av=(a,z0,z1)=>{const i0=Math.floor(z0/16),i1=Math.min(Math.ceil(z1/16),Math.floor(td/16));if(i1<=i0)return null;let q=0;for(let i=i0;i<i1;i++)q+=a[i];return q/(i1-i0)};
+ const st=w.blow?'Perdido por blowout':w.ok?'Exploración exitosa · pozo suspendido':w.prod?'Productor':hc&&w.bad?'Dañado por fractura (no completable)':hc?'Redundante (trampa ya descubierta)':'Seco';
+ const iv=colIv(w.x,w.y),cp=colP(w.x,w.y),oil=hc&&T&&T.fluid=='oil',g=av(gr,iv.res[0],iv.res[1]),r=av(rs,iv.res[0],iv.res[1]),api=T?Math.round(T.econ.api||0):0,d0=1+Math.floor(S.h/24);
+ const fl=hc&&T?(oil?'Petróleo, '+api+'° API'+(api<26?' (biodegradado, pesado)':''):(T.econ.ro>2?'Gas seco':'Gas húmedo / condensado')):(T&&T.nocharge?'Sin hidrocarburo: trampa sin carga (mala sincronía o migración que no llegó)':lk?'Agua de formación (falla abierta, trampa con fuga)':ign?(S.ign.res?'Indicios de hidrocarburo en roca ígnea fracturada (acumulación sub-comercial)':'Sin fluidos móviles (intrusivo ígneo, espejismo sísmico)'):'Sin hidrocarburo (fuera de trampa)');
+ const ev=w.pr?('Presión de formación '+w.P.toFixed(2)+' g/cc (anormal). Resultado: '+({ok:'controlado con lodo de '+(w.mud||0).toFixed(2)+' g/cc',bop:'BOP cerrado, pozo asegurado',frac:'fractura por lodo pesado, pérdida de circulación',blow:'blowout'}[w.ev]||'—')):'Sin anomalía de presión (≈1,05 g/cc)';
+ const rows=[['Estado',st],['Nombre del pozo','EXP-N'+S.lvl+'-'+String(S.wells.indexOf(w)+1).padStart(2,'0')],['Ubicación','X '+(w.x*.35).toFixed(1)+' km · Y '+(w.y*.35).toFixed(1)+' km (celda '+w.x.toFixed(0)+', '+w.y.toFixed(0)+')'],['Perforado','Día '+d0+' del proyecto (nivel '+S.lvl+')'],['Profundidad alcanzada',Math.round(td)+' m'],
+  ['Sello ('+cp.sealN+')',Math.round(iv.seal[0])+'–'+Math.round(iv.seal[1])+' m · '+Math.round(cp.sh)+' m'],['Reservorio ('+cp.resN+')',Math.round(iv.res[0])+'–'+Math.round(iv.res[1])+' m · '+Math.round(cp.rh)+' m de espesor'],['Roca madre ('+cp.srcN+')',Math.round(iv.src[0])+'–'+Math.round(iv.src[1])+' m · '+Math.round(cp.sth)+' m']];
+ if(ign)rows.push(['Intrusivo ígneo (sill/dique)',Math.round(S.ign.z)+'–'+Math.round(S.ign.z+120)+' m']);if(T)rows.push(['Tipo de trampa',T.type],['Tipo de reservorio',{sst:'arenisca',carb:'carbonato (depende de porosidad vugular y fracturas)',volc:'volcánico fracturado'}[cp.rt]]);
+ rows.push(['Rayos Gamma en reservorio',g==null?'no alcanzado':Math.round(g)+' API'],['Resistividad en reservorio',r==null?'no alcanzado':(r<10?r.toFixed(1):Math.round(r))+' Ω·m'],(T?['Porosidad / permeabilidad est.',T.econ.por.toFixed(1)+' % · '+(T.econ.k<.1?'<0,1':T.econ.k>=10?Math.round(T.econ.k):T.econ.k.toFixed(1))+' mD'+(T.econ.crest+cp.rh>3000&&T.rs.cuyo?' (reservorio comprometido por soterramiento mayor a 3.000 m)':'')]:['Porosidad / permeabilidad est.','no determinada (fuera de trampa)']),['Presión y control de pozo',ev],['Fluido',fl]);
+ rows.push(['Equipo instalado',w.blow?'Ninguno (pozo perdido)':w.ok?'Torre de perforación; pozo suspendido, listo para explotación':'Ninguno (pozo abandonado)']);
+ rows.push(['C.O.T. (roca madre)',w.toc.toFixed(1)+' % · '+tocTxt(w.toc)],['Reflectancia de vitrinita (Ro)',w.ro.toFixed(2)+' % · '+roTxt(w.ro)]);if(T)rows.push(['Roca madre y querógeno',T.sr.n+' · '+T.sr.k],['Cocina y carga','El C.O.T. y el Ro caracterizan la roca madre que carga la trampa; en un play convencional la acumulación también depende de la migración y de la sincronía con la trampa']);if(w.ok&&T)rows.push(['Evaluación económica',T.econ.v+' · VAN a 1 año ≈ '+fmt(T.econ.npv)+' · ingreso neto ≈ '+fmt(T.econ.net)+'/día'],['Decisión sugerida',T.econ.v=='RENTABLE'?'Perforar pozo de explotación':T.econ.v=='MARGINAL'?'Evaluar: ganancia baja':'No extraer']);
+ rows.push(['Temperatura estimada',Math.round(.0443*iv.res[0]+9.5967)+' °C en el reservorio · '+Math.round(.0443*td+9.5967)+' °C a '+Math.round(td)+' m (gradiente normal ≈ 3 °C/100 m)']);rows.push(['Tipo de perforación','Exploración (10 días)'],['Tiempo de operación',(10+(w.ev=='bop'?1:0))+' días'],['Costo total',fmt(w.cost)]);
+ if(!w.ok&&!w.prod)rows.push(['— CIERRE Y ABANDONO —','Informe para dar de baja el pozo'],['Tapón 1 (roca madre)',td>iv.src[1]?Math.round(iv.src[1]+20)+'–'+Math.round(iv.src[1]-80)+' m, cemento':'No aplica (no se alcanzó)'],['Tapón 2 (reservorio y sello)',Math.round(iv.res[1]+20)+'–'+Math.round(iv.seal[0]-20)+' m, cemento'],['Tapón de superficie','50–0 m, cemento'],['Entre tapones','Lodo densificado, presión controlada'],['Cañería','Corte a 1,5 m bajo el terreno; placa con nombre y coordenadas'],['Locación','Desmonte, cierre de piletas y restitución del suelo'],['Trámite','Informe final y fotografías a la autoridad de aplicación provincial (verificá la normativa vigente)'],['Costo estimado de abandono','US$ 45 k a cargo del operador']);
+ return{titulo:(w.kind=='dev'?'Explotación N':'Exploración N')+S.lvl+'-'+String(S.wells.indexOf(w)+1).padStart(2,'0')+' · '+st,rows}}
+function mkFxDev(w,T){const oil=T.fluid=='oil',E=T.econ;return{titulo:'Explotación N'+S.lvl+'-'+String(S.wells.indexOf(w)+1).padStart(2,'0')+' · Productor',rows:[['Estado','Productor'],['Ubicación','X '+(w.x*.35).toFixed(1)+' km · Y '+(w.y*.35).toFixed(1)+' km'],['Perforado','Día '+(1+Math.floor(S.h/24))+' del proyecto (nivel '+S.lvl+')'],['Tipo de perforación','Explotación (15 días)'],['Reservorio',T.rs.n+' ('+({sst:'arenisca',carb:'carbonato',volc:'volcánico fracturado'}[T.rs.t])+')'],['Fluido',oil?'Petróleo, '+Math.round(E.api)+'° API':(E.ro>2?'Gas seco':'Gas húmedo / condensado')],['Equipo instalado',oil?'Bomba AIB (balancín)':'Bomba de cavidad progresiva (PCP) + gasoducto'],['Almacenamiento',oil?'Batería de tanques (2 × 500 bbl) con línea de conducción':'Gasoducto hasta planta de tratamiento'],['Nombre del pozo','EXPL-N'+S.lvl+'-'+String(S.wells.indexOf(w)+1).padStart(2,'0')],['Evaluación económica',E.v+' · VAN a 1 año ≈ '+fmt(E.npv)],['Ingreso neto',fmt(E.net)+' por día'],['Costo total',fmt(w.cost)]]}}
+function develop(x,y){const T=S.trs.find(t=>G(t,x,y)>.3);
+ if(!T){say('Ahí no hay una trampa explorada. La perforación de explotación va sobre una trampa ya explorada.');return}
+ if(!T.found){say('Esa trampa todavía no fue explorada. Hacé primero una perforación de exploración (mide C.O.T. y Ro y evalúa la rentabilidad).');return}
+ if(T.exploited){say('Esa trampa ya está en producción.');return}
+ if(!spend(360,350000))return;deact();sfx('drill');S.busy=true;S.wells.filter(e=>e.ok&&e.kind!='dev'&&G(T,e.x,e.y)>.3).forEach(e=>{e.retired=true;if(e.fx)e.fx.rows[0]=['Estado','Exploratorio productivo · torre retirada al iniciar la explotación']});const w={x,y,prod:false,rig:true,kind:'dev',cost:350000};S.wells.push(w);
+ w.fx={titulo:'Explotación N'+S.lvl+'-'+String(S.wells.indexOf(w)+1).padStart(2,'0')+' · en perforación',rows:[['Estado','Torre de perforación instalada; el pozo exploratorio fue retirado'],['Ubicación','X '+(w.x*.35).toFixed(1)+' km · Y '+(w.y*.35).toFixed(1)+' km'],['Tipo de perforación','Explotación (15 días)'],['Siguiente paso',T.fluid=='oil'?'Bomba AIB y batería de almacenamiento':'PCP y gasoducto']]};draw();fichaShow(w);say('Perforación de explotación en curso...');
+ setTimeout(()=>{w.rig=false;w.prod=true;w.type=T.fluid;w.rate=T.econ.net;T.exploited=true;S.busy=false;
+  if(T.econ.v=='RENTABLE'){S.rep=Math.min(S.rm,S.rep+15);say('Pozo de explotación en producción ('+(T.fluid=='oil'?'bomba AIB y batería de almacenamiento':'PCP y gasoducto')+'). Ingreso neto ≈ '+fmt(T.econ.net)+' por día.')}
+  else{S.rep-=8;say('Pusiste en producción una trampa '+T.econ.v+': ingreso neto de '+fmt(T.econ.net)+' por día. −8 de reputación.')}
+  w.fx=mkFxDev(w,T);add('Pozo',w.fx.titulo,null,undefined,undefined,w);fichaShow(w);hud();chk()},2200)}
+function fichaShow(w){const f=w.fx;if(!f)return;$('fcT').textContent=f.titulo;
+ $('fcP').innerHTML='<table style="border-collapse:collapse;width:100%;font-size:13px">'+f.rows.map(r=>'<tr><td style="padding:3px 8px 3px 0;color:var(--ln);vertical-align:top">'+r[0]+'</td><td style="padding:3px 0"><b>'+r[1]+'</b></td></tr>').join('')+'</table>';$('ficha').style.display='block';goMesa()}
+$('ovR').onclick=()=>{$('ov').style.display='none';S.review=true;deact();$('revB').style.display='inline-block';
+ say('Modo revisión: el mapa marca las trampas reales, la falla con fuga y el intrusivo. Tocá un pozo para ver su informe, o revisá la bitácora.');draw()};
+
+function deact(){S.mode='sel';S.pts=[];['seis','3d','grav','mag','geo','drill','dev','poi','out'].forEach(k=>$('b-'+k).classList.remove('on'))}
+function mode(m){S.mode=S.mode==m?'sel':m;S.pts=[];if(S.mode=='out')S.outLeft=5;sfx('click');['seis','3d','grav','mag','geo','drill','dev','poi','out'].forEach(k=>$('b-'+k).classList.toggle('on',S.mode==k));
+ say(TIPS[S.mode])}
+function layer(l){S.layer=l;['terrain','grav','mag','geo'].forEach(k=>$('l-'+k).classList.toggle('on',k==l));draw()}
+
+const inQuad=(P,x,y)=>{let a=0,b=0;for(let i=0;i<4;i++){const p=P[i],q=P[(i+1)%4],c=(q[0]-p[0])*(y-p[1])-(q[1]-p[1])*(x-p[0]);if(c>0)a=1;else b=1}return !(a&&b)};
+function thumb(){const cv=document.createElement('canvas');cv.width=400;cv.height=270;cv.getContext('2d').drawImage(map,0,0,400,270);return cv.toDataURL()}
+function anim(D,fn,cb){const t0=performance.now();(function f(now){const p=Math.min(1,(now-t0)/D);fn(p,now);draw();if(p<1)requestAnimationFrame(f);else cb()})(t0)}
+function droneFly(P,cb,D=4800){S.busy=true;sfx('drone',D/1000);say('Dron en vuelo: sobrevolando el área seleccionada con el sensor...');
+ const pts=[];for(let r=0;r<5;r++){const t=(r+.5)/5,a=lp(P[0],P[3],t),b=lp(P[1],P[2],t);if(r%2)pts.push(b,a);else pts.push(a,b)}
+ const L=[0];for(let i=1;i<pts.length;i++)L.push(L[i-1]+Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]));const tot=L[L.length-1];
+ anim(D,(p,now)=>{const d=p*tot;let i=1;while(i<pts.length-1&&L[i]<d)i++;const u=(d-L[i-1])/((L[i]-L[i-1])||1),x=pts[i-1][0]+(pts[i][0]-pts[i-1][0])*u,y=pts[i-1][1]+(pts[i][1]-pts[i-1][1])*u;S.fx={t:'drone',x,y,p,now,trail:pts.slice(0,i).concat([[x,y]])}},()=>{S.fx=null;S.busy=false;cb()})}
+function walk(path,cb,D=3000,sp=.5){S.busy=true;let tot=0;for(let i=1;i<path.length;i++)tot+=Math.hypot(path[i][0]-path[i-1][0],path[i][1]-path[i-1][1]);sp=Math.max(sp,tot/60);const R=[];
+ for(let i=1;i<path.length;i++){const a=path[i-1],b=path[i],dl=Math.hypot(b[0]-a[0],b[1]-a[1])||.01,an=Math.atan2(b[1]-a[1],b[0]-a[0]);for(let d=0;d<dl;d+=sp)R.push([a[0]+(b[0]-a[0])*d/dl,a[1]+(b[1]-a[1])*d/dl,an])}
+ const cl=v=>Math.max(1,Math.min(W-1,v)),cy=v=>Math.max(1,Math.min(H-1,v));let k=0;
+ anim(D,p=>{const n=Math.round(p*R.length);while(k<n){const r=R[k],sd=k%2?1:-1;[0,1].forEach(q=>S.steps.push({x:cl(r[0]-Math.sin(r[2])*.16*sd+q*.9),y:cy(r[1]+Math.cos(r[2])*.16*sd+q*.5),a:r[2]}));if(k%3==0)sfx('step');k++}if(S.steps.length>1800)S.steps.splice(0,900)},()=>{S.busy=false;cb()})}
+function survey(k,P){if(!spend(120,k=='grav'?60000:45000))return;deact();droneFly(P,()=>{if(!S[k])S[k]=new Array(W*H).fill(NaN);
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(inQuad(P,x+.5,y+.5))S[k][y*W+x]=FLD[k](x,y)+NZ(x,y)+(Math.random()-.5)*.05;
+ layer(k);add(k=='grav'?'Gravimetría':'Magnetometría','cuadrante de '+(polyA(P)/(W*H)*100).toFixed(1)+' % del terreno',thumb());
+ say(k=='grav'?'Gravimetría lista para el cuadrante: rojos = mayor densidad. Un alto suave puede ser un anticlinal; uno muy intenso, un cuerpo denso.':'Magnetometría lista para el cuadrante: los picos indican rocas magnéticas, típicamente ígneas. Cruzalo con la gravimetría.')})}
+function geoStudy(cx,cy){const r=rnd(3,4.5),pts=[];for(let y=cy-r;y<=cy+r;y+=1.5)for(let x=cx-r;x<=cx+r;x+=1.5)if(Math.hypot(x-cx,y-cy)<=r)pts.push([x,y]);
+ const dias=Math.ceil(pts.length/5);if(!spend(dias*24,pts.length*2000))return;deact();{const rw=new Map();pts.forEach(p=>{const k=p[1].toFixed(2);if(!rw.has(k))rw.set(k,[]);rw.get(k).push(p)});const sn=[];[...rw.values()].forEach((r,i)=>sn.push(...(i%2?r.slice().reverse():r)));S.gpath=[[cx-r-3.5,cy-r]].concat(sn)}
+ const gp=S.gpath;walk(gp,()=>{if(!S.geo)S.geo=new Array(W*H).fill(NaN);
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(Math.hypot(x+.5-cx,y+.5-cy)<=r)S.geo[y*W+x]=FLD.geo(x,y)+(Math.random()-.5)*.14;
+ S.geoPts=(S.geoPts||[]).concat(pts);S.geoC=(S.geoC||[]).concat([[cx,cy,r]]);layer('geo');
+ add('Geoquímica','círculo de '+(Math.PI*r*r/(W*H)*100).toFixed(1)+' % del terreno, '+pts.length+' muestras',thumb());
+ say('Geoquímica de superficie lista: '+pts.length+' muestras de suelo ('+dias+' días). Un halo en anillo puede ser microfiltración sobre una trampa; un pico intenso y concentrado suele marcar una falla que pierde gas. Ojo: las anomalías se desplazan y hay falsos positivos; no marcan el punto exacto de perforación.')},3600)}
+function draw(){if(!S)return;mc.imageSmoothingEnabled=true;mc.drawImage(terr,0,0);
+ const f=S[S.layer];if(f){const s=document.createElement('canvas');s.width=W;s.height=H;const c=s.getContext('2d'),im=c.createImageData(W,H),V=f.filter(v=>v===v),mn=Math.min(...V),mx=Math.max(...V);
+  f.forEach((v,i)=>{if(v!==v)return;const k=lc(S.layer=='geo'?STG:STM,(v-mn)/(mx-mn));im.data.set([k[0],k[1],k[2],200],i*4)});c.putImageData(im,0,0);mc.drawImage(s,0,0,624,416)}
+ mc.lineWidth=2;mc.strokeStyle='#111';S.lines.forEach(l=>{mc.setLineDash([6,4]);mc.beginPath();mc.moveTo(l[0]*C,l[1]*C);mc.lineTo(l[2]*C,l[3]*C);mc.stroke()});mc.setLineDash([]);
+ S.pts.forEach(p=>{mc.fillStyle='#fff';mc.fillRect(p[0]*C-3,p[1]*C-3,6,6)});
+ S.boxes.forEach(b=>{mc.strokeStyle='#ffd400';mc.lineWidth=2;mc.setLineDash([5,3]);mc.beginPath();b.forEach((p,i)=>i?mc.lineTo(p[0]*C,p[1]*C):mc.moveTo(p[0]*C,p[1]*C));mc.closePath();mc.stroke();[[qp(b,0,.5),qp(b,1,.5)],[qp(b,.5,0),qp(b,.5,1)]].forEach(l=>{mc.beginPath();mc.moveTo(l[0][0]*C,l[0][1]*C);mc.lineTo(l[1][0]*C,l[1][1]*C);mc.stroke()});mc.setLineDash([])});
+ if(S.review){[[S.leak,'Falla con fuga','#ff5a5a'],[S.ign,'Intrusivo ígneo','#c77dff']].concat(S.trs.map(t=>[t,'Trampa · '+(t.fluid=='oil'?'petróleo':'gas')+(t.found?' (explorada)':' (sin explorar)')+' · '+t.econ.v,'#5ad17a'])).forEach(([o,n,c])=>{mc.strokeStyle=c;mc.lineWidth=2;mc.setLineDash([4,3]);mc.beginPath();mc.arc(o.x*C,o.y*C,o.r*C*.8,0,7);mc.stroke();mc.setLineDash([]);mc.fillStyle=c;mc.font='bold 12px Segoe UI';mc.fillText(n,o.x*C-30,o.y*C-o.r*C*.8-4)})}
+ if(S.layer=='geo'&&S.geo){mc.fillStyle='#d00';(S.geoPts||[]).forEach(p=>{mc.beginPath();mc.arc(p[0]*C,p[1]*C,2.2,0,7);mc.fill()});mc.strokeStyle='#d00';mc.lineWidth=1.5;mc.setLineDash([4,3]);(S.geoC||[]).forEach(c=>{mc.beginPath();mc.arc(c[0]*C,c[1]*C,c[2]*C,0,7);mc.stroke()});mc.setLineDash([])}
+ mc.font='bold 12px Segoe UI,sans-serif';
+ S.outc.forEach(o=>{const X=o.x*C,Y=o.y*C;mc.save();mc.translate(X,Y);mc.rotate(o.rot);mc.fillStyle='#8b3a2a';mc.strokeStyle='#2b140f';mc.lineWidth=1.5;mc.beginPath();mc.ellipse(0,0,o.rx,o.ry,0,0,7);mc.fill();mc.stroke();mc.restore();
+  mc.fillStyle='#fff';if(o.seen){mc.strokeStyle='#fff';mc.lineWidth=2;mc.beginPath();mc.moveTo(X,Y);mc.lineTo(X+Math.cos(o.a)*22,Y+Math.sin(o.a)*22);mc.stroke();mc.fillText(o.short,X+8,Y-9)}else mc.fillText('?',X-3,Y-8)});
+ mc.fillStyle='rgba(40,25,15,.7)';S.steps.forEach(p=>{mc.beginPath();mc.ellipse(p.x*C,p.y*C,3,1.6,p.a,0,7);mc.fill()});
+ if(S.fx&&S.fx.t=='drone'){const X=S.fx.x*C,Y=S.fx.y*C;mc.strokeStyle='#ffe14d';mc.lineWidth=1.5;mc.beginPath();S.fx.trail.forEach((p,i)=>i?mc.lineTo(p[0]*C,p[1]*C):mc.moveTo(p[0]*C,p[1]*C));mc.stroke();mc.fillStyle='#222';mc.fillRect(X-4,Y-4,8,8);mc.strokeStyle='#ddd';mc.lineWidth=2;[[-7,-7],[7,-7],[-7,7],[7,7]].forEach(o=>{mc.beginPath();mc.arc(X+o[0],Y+o[1],4,0,7);mc.stroke()})}
+ if(S.trk){const{a,b,p,now}=S.trk,ang=Math.atan2(b[1]-a[1],b[0]-a[0]);
+  for(let j=0;j<3;j++){const q=Math.max(0,p-j*.07),X=(a[0]+(b[0]-a[0])*q)*C,Y=(a[1]+(b[1]-a[1])*q)*C,ph=((now/150)+j*.3)%1;
+   mc.strokeStyle='rgba(255,255,255,'+(1-ph)+')';mc.lineWidth=2;mc.beginPath();mc.arc(X,Y,4+ph*22,0,7);mc.stroke();
+   mc.save();mc.translate(X,Y);mc.rotate(ang);mc.fillStyle='#f2c200';mc.strokeStyle='#111';mc.lineWidth=1.5;mc.fillRect(-10,-4,15,8);mc.strokeRect(-10,-4,15,8);mc.fillStyle='#222';mc.fillRect(5,-4,5,8);mc.fillRect(-5,-2,4,4);mc.restore()}}
+ mc.font='bold 12px Segoe UI,sans-serif';
+ S.pois.forEach(p=>{mc.fillStyle='#fff';mc.beginPath();mc.arc(p.x*C,p.y*C,4,0,7);mc.fill();mc.strokeStyle='#14263a';mc.stroke();mc.fillStyle='#14263a';mc.fillText(p.n,p.x*C+7,p.y*C+4)});
+ S.wells.forEach(w=>{if(w.retired)return;const X=w.x*C,Y=w.y*C;
+  if(w.prod&&w.type=='gas'){mc.strokeStyle='#ffd400';mc.lineWidth=3;mc.beginPath();mc.moveTo(X,Y);mc.lineTo(624,Y);mc.stroke()}
+  icon(w,X,Y);
+  mc.fillStyle='#fff';mc.font='bold 11px Segoe UI';mc.fillText(w.prod?(w.type=='oil'?'AIB':'PCP'):(w.rig?'perforando':w.ok?'explor. ✓':'seco'),X+15,Y+4)})}
+
+map.onclick=e=>{const r=map.getBoundingClientRect();act((e.clientX-r.left)/r.width*W,(e.clientY-r.top)/r.height*H)};
+function act(x,y){if(S.busy)return;if(S.over&&S.mode!='sel'){if(S.review)say('Partida finalizada: modo revisión. Solo podés consultar fichas y estudios.');return}
+ if(S.mode=='poi'){{const hp=(S.nPoi+1)%2==0?24:0;if(!spend(hp,0))return;S.nPoi++;S.pois.push({x,y,n:'Interés '+(S.pois.length+1)});add('Punto de interés','Interés '+S.pois.length,null);deact();draw()}}
+ else if(S.mode=='seis'){S.pts.push([x,y]);draw();if(S.pts.length==2){const[a,b]=S.pts;S.pts=[];if(!spend(360,40000)){draw();return}S.lines.push([a[0],a[1],b[0],b[1]]);deact();vibro(a,b,()=>{seis(a,b);draw();goMesa()})}}
+ else if(S.mode=='3d'||S.mode=='grav'||S.mode=='mag'){const md=S.mode,mx=md=='3d'?34:25;S.pts.push([x,y]);draw();say('Vértice '+S.pts.length+' de 4. El área no puede superar el '+mx+' % del terreno.');
+  if(S.pts.length==4){const P=S.pts;S.pts=[];const A=polyA(P),pc=A/(W*H)*100;
+   if(!polyOK(P)){say('Los 4 puntos deben formar un cuadrilátero convexo, sin cruzarse. Volvé a marcarlos.');draw();return}
+   if(pc>mx){say('El área marcada es el '+pc.toFixed(1)+' % del terreno; el máximo es '+mx+' %. Marcá una zona más chica.');draw();return}
+   if(A<36){say('El área es demasiado chica (mínimo unas 36 celdas²).');draw();return}
+   if(md=='3d'){if(!spend(720,140000)){draw();return}S.boxes.push(P);deact();vib3(P,()=>{cube(P);draw();goMesa()})}
+   else{survey(md,P);draw()}}}
+ else if(S.mode=='out')inspect(x,y)
+ else if(S.mode=='drill')drill(x,y);else if(S.mode=='dev')develop(x,y);else if(S.mode=='geo')geoStudy(x,y);else if(S.mode=='sel'){const q=S.wells.find(w=>!w.retired&&Math.hypot(w.x-x,w.y-y)<1.6);if(q&&q.fx)fichaShow(q)}}
+
+function seis(a,b){const NT=100,NR=270,amp=new Float32Array(NT*NR);
+ for(let i=0;i<NT;i++){const x=a[0]+(b[0]-a[0])*i/NT,y=a[1]+(b[1]-a[1])*i/NT,hz=hzs(x,y);
+  for(let r=0;r<NR;r++){const d=r*S.prof.td/NR;let v=(Math.random()-.5)*.25;for(const[h,A]of hz){const u=(d-h)/26;v+=A*(1-2*u*u)*Math.exp(-u*u)}amp[i*NR+r]=Math.max(-1,Math.min(1,v))}}
+ S.seis={amp,NT,NR,a,b};$('oTitle').textContent='Sísmica 2D · reflectores';showSeis();
+ add('Sísmica 2D','línea de '+Math.round(Math.hypot(b[0]-a[0],b[1]-a[1])*.35*10)/10+' km',out.toDataURL());
+ say('Línea adquirida. Recordá: los colores son reflectores (contrastes de impedancia), no petróleo directo. Un reflector muy brillante puede ser un intrusivo ígneo o una roca densa. Usá el filtro de amplitud.')}
+function thrInfo(t,fr){$('thrV').textContent=Math.round(t*100)+' %';$('thrInfo').textContent=t==0?'Sin filtro: se ven todos los reflectores. Subí el umbral para dejar en color solo los más intensos y atenuar el resto en gris.':'Se ven en color los reflectores con amplitud ≥ '+Math.round(t*100)+' % del máximo ('+Math.round(fr*100)+' % de la imagen); el resto queda gris. Un reflector muy brillante aislado puede ser hidrocarburo, un intrusivo ígneo o una roca densa: no es prueba directa.'}
+function showSeis(){const s=S.seis;if(!s)return;const t=$('thr').value/100;thrInfo(t,s.amp.reduce((a,x)=>a+(Math.abs(x)>=t?1:0),0)/s.amp.length);const im=oc.createImageData(400,270);
+ for(let i=0;i<s.NT;i++)for(let r=0;r<s.NR;r++){const v=s.amp[i*s.NR+r];let k=lc(STS,(v+1)/2);if(Math.abs(v)<t){const g=(k[0]+k[1]+k[2])/3*.5;k=[g,g,g]}
+  for(let p=0;p<4;p++)im.data.set([k[0],k[1],k[2],255],(r*400+i*4+p)*4)}
+ oc.putImageData(im,0,0);oc.fillStyle='#fff';oc.font='11px Segoe UI';oc.fillText('A',4,12);oc.fillText('B',384,12);for(let d=0;d*1000<=S.prof.td;d++)oc.fillText(d+' km',4,Math.min(262,d*1000/S.prof.td*270+14));oc.fillText('Rojo/amarillo = amplitud (+) · celeste/azul = (−) · gris = filtrado',60,264)}
+$('thr').oninput=()=>{const t=$('oTitle').textContent;if(t.startsWith('Sísmica'))showSeis();else if(t.startsWith('Cubo'))showCube();else thrInfo($('thr').value/100,1)};
+$('sl').oninput=()=>{if(S.cube)showCube()};
+
+function lith(x,y,z){const iv=colIv(x,y),c=colP(x,y),ig=S.ign;if(G(ig,x,y)>.3&&z>=ig.z&&z<ig.z+120)return'ign';
+ if(z>=iv.seal[0]&&z<iv.seal[1])return c.sl;if(z>=iv.res[0]&&z<iv.res[1])return c.rt;if(z>=iv.src[0]&&z<iv.src[1])return'src';return((z/140|0)%3==1)?'sst':'shl'}
+function drill(x,y){if(!spend(240,180000))return;deact();sfx('drill');S.busy=true;const w={x,y,prod:false,rig:true,cost:180000,pr:Math.random()<Math.min(.9,dif().pr*(.4+.2*S.lvl)),P:rnd(1.35,1.75)};{const T0=S.trs.find(t=>G(t,x,y)>.3),q=T0?T0.econ:null;w.toc=(q?q.toc:rnd(1,4))*rnd(.95,1.05);w.ro=(q?q.ro:rnd(.6,1.6))*rnd(.97,1.03)}S.wells.push(w);draw();goMesa();
+ const N=Math.round(S.prof.td/16),gr=[],rs=[],li=[],GR={ign:25,anh:12,sst:45,shl:105,carb:18,volc:35,pel:105,dst:55,src:0},RS={ign:300,anh:200,sst:4,shl:3,carb:25,volc:70,pel:3,dst:30,src:0},hc=hcAt(x,y);
+ for(let i=0;i<N;i++){const z=i*16,l=lith(x,y,z),iv=colIv(x,y),gg=l=='src'?Math.min(250,100+w.toc*12):GR[l],rr=l=='src'?6+w.toc*2:RS[l];li.push(l);gr.push(gg*(1+(Math.random()-.5)*.25));
+  rs.push(rr*(1+(Math.random()-.5)*.3)*((hc&&z>=iv.res[0]&&z<iv.res[1]&&(l=='sst'||l=='carb'||l=='volc'))?(l=='carb'?10:l=='volc'?5:18):1))}
+ $('oTitle').textContent='Pozo · Rayos Gamma / Resistividad';const col={ign:'#c77dff',anh:'#9fd6d6',sst:'#e9c46a',shl:'#5c6b73',carb:'#b8c7d9',volc:'#a88aa8',pel:'#5c6b73',dst:'#d6b88a',src:'#1c1c22'};let n=0;
+ (function step(){n+=4;
+  if(w.pr&&!w.done&&n>=((colIv(x,y).src[0]+30)/16|0)){w.done=true;kick(w.P,(r,m)=>{w.ev=r;w.mud=m;w.cost+={ok:0,bop:60000,frac:40000,blow:250000}[r];if(r=='blow'){S.busy=false;w.rig=false;draw();w.blow=true;w.fx=mkFx(w,gr,rs,hc,n*16);add('Pozo',w.fx.titulo,out.toDataURL(),undefined,undefined,w);fichaShow(w);chk();return}if(r=='frac')w.bad=true;requestAnimationFrame(step)});return}
+  oc.fillStyle='#0b1622';oc.fillRect(0,0,400,270);oc.font='11px Segoe UI';
+  for(let i=0;i<Math.min(n,N);i++){oc.fillStyle=col[li[i]];oc.fillRect(0,i*270/N,16,270/N+1)}
+  [[gr,30,170,v=>v/150,'#5ad17a','GR (API)'],[rs,215,170,v=>Math.log10(v)/2.6,'#ff7b72','Resistividad (log)']].forEach(([a,x0,w,f,c,t])=>{oc.strokeStyle=c;oc.lineWidth=1.5;oc.beginPath();
+   for(let i=0;i<Math.min(n,N);i++){const px=x0+Math.min(1,f(a[i]))*w,py=i*270/N;i?oc.lineTo(px,py):oc.moveTo(px,py)}oc.stroke();oc.fillStyle='#fff';oc.fillText(t,x0,266)});
+  oc.fillStyle='#fff';oc.fillText(n*16+' m',330,20);if(n>=(colIv(x,y).src[0]+30)/16){oc.fillStyle='#ffd400';oc.fillText('C.O.T. '+w.toc.toFixed(1)+' %  ·  Ro '+w.ro.toFixed(2)+' %',34,colIv(x,y).src[0]*270/(N*16)+12)}
+  if(n<N){requestAnimationFrame(step);return}
+  S.busy=false;w.rig=false;const img=out.toDataURL();
+  const T=S.trs.find(t=>G(t,x,y)>.3);
+  if(hc&&T.found){S.rep-=10;say('Esa trampa ya fue explorada: perforaste un pozo de exploración redundante. −10 de reputación.')}
+  else if(hc&&w.bad){S.rep-=8;say('Hay hidrocarburo, pero la fractura dañó el pozo y no se puede completar. La trampa sigue pendiente: perforá de nuevo.')}
+  else if(hc){T.found=true;w.ok=true;w.type=T.fluid;S.rep=Math.min(S.rm,S.rep+15);les(T.econ.v=='RENTABLE'?'good':'econ');
+   say('Exploración exitosa: hay '+(w.type=='oil'?'petróleo':'gas')+'. C.O.T. '+w.toc.toFixed(1)+' % ('+tocTxt(w.toc)+') y Ro '+w.ro.toFixed(2)+' % ('+roTxt(w.ro)+'). Evaluación económica: '+T.econ.v+', VAN a 1 año ≈ '+fmt(T.econ.npv)+'. '+(T.econ.v=='RENTABLE'?'Conviene una perforación de explotación.':T.econ.v=='MARGINAL'?'La ganancia sería baja: evaluá si vale la pena.':'No conviene extraer.'))}
+  else if(T&&T.nocharge){T.tested=true;S.rep-=12;les('charge');say('Pozo seco: la trampa es real (reservorio y sello), pero no recibió hidrocarburos: mala sincronía entre la generación y la formación de la trampa, o la migración nunca llegó hasta ella.')}
+  else{S.rep-=22;les(G(S.ign,x,y)>.3?'ign':G(S.leak,x,y)>.3?'leak':'none');say(G(S.ign,x,y)>.3?'Pozo seco: el reflector brillante era un cuerpo ígneo (espejismo sísmico). Notá la resistividad altísima con gamma bajo.':G(S.leak,x,y)>.3?'Pozo seco: la estructura estaba cerrada en sísmica pero la falla es abierta y el reservorio tiene agua (trampa con fuga).':'Pozo seco: sin trampa en este punto. El jefe no está contento.')}
+  w.fx=mkFx(w,gr,rs,hc,N*16);add('Pozo',w.fx.titulo,img,undefined,undefined,w);fichaShow(w);hud();chk()})()}
+
+function kick(P,done){const k=$('kick'),mud=$('mud'),bar=$('kbar');k.style.display='block';mud.value=1.2;let kv=12,fr=0,fin=false,iv;const al=setInterval(()=>sfx('alarm'),1100);sfx('alarm');
+ say('¡Alarma! Presión anormal en las lutitas compactadas. Si el influjo sube, aumentá el peso del lodo; si te pasás, fracturás la formación. Si se descontrola, cerrá el BOP.');
+ const end=r=>{if(fin)return;fin=true;clearInterval(iv);clearInterval(al);k.style.display='none';sfx({ok:'ok',bop:'bop',frac:'buzz'}[r]);
+  if(r=='ok'){les('mud');S.rep=Math.min(S.rm,S.rep+8);say('Pozo controlado. Buen manejo del lodo: +8 de reputación.')}
+  else if(r=='bop'){S.cap-=60000;S.h+=24;S.rep-=3;say('BOP cerrado: pozo seguro, pero perdiste 24 h y US$ 60 k.')}
+  else if(r=='frac'){S.cap-=40000;S.rep-=6;say('Lodo demasiado pesado: fracturaste la formación y perdiste circulación. −US$ 40 k.')}
+  else{S.cap-=250000;S.rep-=35;say('¡BLOWOUT! Perdiste el control del pozo. −US$ 250 k y −35 de reputación.')}
+  add('Control de pozo',{ok:'influjo controlado, lodo de '+(+mud.value).toFixed(2)+' g/cc',bop:'BOP cerrado, pozo asegurado',frac:'fractura por lodo pesado',blow:'BLOWOUT'}[r],null,{ok:0,bop:60000,frac:40000,blow:250000}[r],r=='bop'?24:0);hud();done(r,+mud.value)};
+ $('bop').onclick=()=>end('bop');
+ iv=setInterval(()=>{const m=+mud.value;$('mv').textContent=m.toFixed(2);
+  kv+=m<P?(P-m)*8*dif().kick*(1+.1*(S.lvl-1)):-3;fr=m>P+.3?fr+1:0;bar.style.width=Math.min(100,kv)+'%';
+  if(kv>=100)end('blow');else if(kv<=0)end('ok');else if(fr>10)end('frac')},100)}
+const STG=[[70,120,50],[200,200,140],[250,180,50],[235,70,40],[190,100,220]];
+const FLD={grav:(x,y)=>.8*Math.max(.4,1-.1*(S.lvl-1))*S.trs.reduce((s,t)=>s+G(t,x,y)*Math.min(1,.25+t.rel/250),0)+.5*G(S.leak,x,y)+1.6*G(S.ign,x,y),
+ mag:(x,y)=>2*G(S.ign,x,y)+.3*G(S.leak,x,y)+.1*TG(x,y),
+ geo:(x,y)=>1.3*G({x:S.leak.x+S.gO.l[0],y:S.leak.y+S.gO.l[1],r:S.leak.r*.8},x,y)+Math.max(.4,1-.1*(S.lvl-1))*S.trs.reduce((q,t)=>q+t.gq*.6*Math.exp(-((Math.hypot(x-t.x-t.go[0],y-t.y-t.go[1])-t.r*.9)**2)/3),0)+S.gO.f.reduce((q,o)=>q+o.a*G(o,x,y),0)+.6*Math.abs(NZ(x,y))};
+function mkOut(){const L=[],mk=(x,y,type,short,a,dip,txt)=>{const e=Math.random()<.3;L.push({x:Math.max(2,Math.min(W-2,x)),y:Math.max(2,Math.min(H-2,y)),rot:rnd(-1.3,1.3),rx:e?rnd(24,36):rnd(9,14),ry:e?rnd(3,4.5):rnd(4,6.5),type,short,a,dip,txt,seen:false})},pr=p=>Math.random()<p;
+ if(pr(.12))return L;const keep=S.lvl<3?.8:S.lvl<5?.55:.35;
+ S.trs.forEach(t=>{const dp=Math.max(2,Math.round(Math.atan(t.rel*.86/(t.r*350))*180/Math.PI)),RT={sst:'Arenisca',carb:'Caliza / dolomía',volc:'Roca volcánica'}[t.col.rt],SL=t.col.sl=='anh'?['Yeso / anhidrita','Yeso o anhidrita ('+t.col.sealN+'), resalta en el relieve']:['Pelitas oscuras','Pelitas oscuras (sello): '+t.col.sealN];
+  [[RT,RT+' de tipo reservorio ('+t.col.resN+')'],['Lutita bituminosa','Lutita negra bituminosa con concreciones discoidales (roca madre: '+t.col.srcN+')'],SL].forEach((e,i)=>{if(!pr(keep))return;const th=i*2.1+rnd(0,.6);
+   mk(t.x+Math.cos(th)*t.r*1.7,t.y+Math.sin(th)*t.r*1.7,e[1],e[0],th,dp,'Las capas buzan hacia afuera, alejándose del centro: patrón típico de un anticlinal ('+t.type+').')})});
+ if(pr(.6))mk(S.ign.x+rnd(-2,2),S.ign.y+rnd(-2,2),'Intrusivo ígneo (sill o dique) dentro de la columna','Intrusivo ígneo',rnd(0,6.28),5,'Cuerpo ígneo intruido en la columna sedimentaria: puede dar reflectores sísmicos brillantes falsos y, a veces, actúa como reservorio fracturado.');
+ if(pr(.5))mk(S.leak.x+2,S.leak.y+2,'Falla expuesta con calcita','Falla',.5,25,'Escarpe de falla abierta con vetas de calcita y olor a gas: puede filtrar hidrocarburo a superficie en lugar de sellarlo.');
+ for(let n=Math.floor(rnd(0,4));n>0;n--){const dx=rnd(4,44),dy=rnd(4,28);mk(dx,dy,'Arenisca de tipo reservorio','Arenisca',Math.atan2(rnd(-4,4),rnd(-4,4)),Math.round(rnd(2,9)),'Las capas buzan hacia un punto central: parece más un sinclinal que un anticlinal.')}
+ return L}
+const card=a=>['norte','noreste','este','sureste','sur','suroeste','oeste','noroeste'][Math.round(((Math.atan2(Math.cos(a),-Math.sin(a))*180/Math.PI+360)%360)/45)%8];
+function inspect(x,y){let o=null,d=1.8;S.outc.forEach(e=>{const k=Math.hypot(e.x-x,e.y-y);if(k<d){d=k;o=e}});
+ if(!o){say('No hay ningún afloramiento cerca de ese punto.');return}
+ const t='Afloramiento: '+o.type+'. Las capas buzan '+o.dip+'° hacia el '+card(o.a)+'. '+o.txt;
+ if(o.seen){say(t);return}const hh=(S.outLeft||5)==1?24:0;if(!spend(hh,5000))return;S.nOut++;S.outLeft=(S.outLeft||5)-1;if(S.outLeft<=0)deact();const a0=rnd(0,6.28),pp=(an,r)=>[Math.max(1,Math.min(W-1,o.x+Math.cos(an)*r)),Math.max(1,Math.min(H-1,o.y+Math.sin(an)*r))];
+ walk([pp(a0,3.2),pp(a0,.9),pp(a0+1.2,1),pp(a0+2.4,1),pp(a0+3.6,1)],()=>{o.seen=true;say(t+(S.outLeft>0?' Inspecciones restantes con la herramienta activa: '+S.outLeft+'.':' Cinco inspecciones completadas: la herramienta se apagó.'));add('Afloramiento',o.short+', buza al '+card(o.a),null);draw()},2200,.42)}
+function vibro(a,b,cb,D=3200){S.busy=true;sfx('vibro',D/1000);const t0=performance.now();say('Camiones vibradores en línea: barrido de frecuencia y registro en los geófonos...');
+ (function f(now){const p=Math.min(1,(now-t0)/D);S.trk={a,b,p,now};draw();if(p<1)requestAnimationFrame(f);else{S.trk=null;S.busy=false;cb()}})(t0)}
+function mkQ(T,ft){const g=Math.max(.2,.65-.08*(S.lvl-1)),u=Math.random(),t=ft!=null?ft:S.lvl==1?0:(u<g?0:u<g+.3?1:2),o=T.fluid=='oil',U=[[.55,1],[.25,.5],[0,.2]][t],uh=rnd(U[0],U[1]),up=rnd(U[0],U[1]),r=T.rs,sr=T.sr,crest=S.z0-T.rel;
+ const h=r.h[0]+(r.h[1]-r.h[0])*uh;let por=r.p[0]+(r.p[1]-r.p[0])*up;if(r.cuyo&&crest+h>3000)por=Math.min(por,9.5);
+ const k=por<10&&crest+h>3000?.05:+(.1*Math.exp(por*.42)).toFixed(por>=10?0:2),toc=sr.toc[0]+(sr.toc[1]-sr.toc[0])*[rnd(.4,.9),rnd(.2,.45),rnd(0,.2)][t],ro=o?rnd(.75,1.25):rnd(1.35,2.3),api=o?rnd(S.prof.api[0],S.prof.api[1]):0,ch=Math.min(1.15,.55+toc/10);
+ const f=1.5*(.2+.8*uh)*(.3+.7*up)*ch,rev=(o?14000*(api/36):11000)*f,net=rev-3500,npv=net*365-350000;
+ return{toc,ro,h,por,k,api,ch,crest,net,npv,v:npv>250000?'RENTABLE':npv>0?'MARGINAL':'NO RENTABLE'}}
+const setEcon=(T,ft)=>{T.econ=mkQ(T,ft);T.col.rh=T.econ.h};
+const res=t=>t.nocharge?t.tested:(t.found&&(t.econ.v!='RENTABLE'||t.exploited));
+const tocTxt=t=>t<1?'pobre':t<2?'regular':t<4?'bueno':'muy bueno',roTxt=r=>r<.6?'inmadura':r<.7?'inicio de ventana de petróleo':r<=1.3?'ventana de petróleo':r<=2?'gas húmedo / condensado':'gas seco (sobremadura)';
+const trapsFor=l=>[1,2,2,3,3,4][Math.min(5,l-1)];
+function mkTrap(x,y){const P=S.prof,ty=P.traps[Math.random()*P.traps.length|0],rel=Math.max(25,rnd(P.rel[0],P.rel[1])*(ty.startsWith('estratigráfica')?.35:1)),crest=S.z0-rel,fl=Math.random()<(crest>2800?P.oil*.4:P.oil)?'oil':'gas',rs=RESD[P.res[Math.random()*P.res.length|0]],sr=SRCD[rs.src],th=Array.isArray(sr.th)?sr.th:sr.th[P.k];
+ const T={x,y,r:5,fluid:fl,found:false,tested:false,type:ty,rel,rs,sr,nocharge:S.lvl>1&&Math.random()<Math.min(.35,.06+.04*S.lvl)};
+ T.col={rt:rs.t,rh:40,sh:rnd(rs.seal.h[0],rs.seal.h[1]),sth:rnd(th[0],th[1]),sl:rs.seal.l,above:!!rs.above,resN:rs.n,sealN:rs.seal.n,srcN:sr.n};setEcon(T);return T}
+function mkTraps(n){const L=[];for(let i=0,g=0;i<n&&g<500;g++){const x=rnd(5,27),y=rnd(6,26);if(L.every(t=>Math.hypot(t.x-x,t.y-y)>(n>4?8:10))){L.push(mkTrap(x,y));i++}}
+ if(!L.some(t=>!t.nocharge&&t.econ.v=='RENTABLE')){const t=L.find(t=>!t.nocharge)||L[0];t.nocharge=false;setEcon(t,0)}return L}
+function icon(w,X,Y){const c=mc,t=performance.now();c.save();c.translate(X,Y);c.fillStyle='rgba(255,255,255,.85)';c.beginPath();c.arc(0,0,15,0,7);c.fill();c.lineWidth=2;c.lineJoin='round';
+ if(!w.prod&&!w.rig&&!w.ok){c.strokeStyle='#7a1f1f';c.lineWidth=4;c.beginPath();c.moveTo(-9,0);c.lineTo(9,0);c.moveTo(0,-9);c.lineTo(0,9);c.stroke()}else if(!w.prod){c.strokeStyle=w.rig||w.ok?'#14263a':'#7a1f1f';c.beginPath();c.moveTo(-9,10);c.lineTo(-2,-13);c.lineTo(2,-13);c.lineTo(9,10);c.moveTo(-6,3);c.lineTo(6,3);c.moveTo(-4,-4);c.lineTo(4,-4);c.moveTo(-6,3);c.lineTo(4,-4);c.moveTo(6,3);c.lineTo(-4,-4);c.stroke();
+  c.fillStyle=w.rig&&((t/300|0)%2)?'#d0561f':c.strokeStyle;c.fillRect(-3,-16,6,4);if(!w.rig&&!w.ok){c.beginPath();c.moveTo(-5,-1);c.lineTo(5,9);c.moveTo(5,-1);c.lineTo(-5,9);c.stroke()}}
+ else if(w.type=='oil'){c.strokeStyle='#14263a';c.fillStyle='#14263a';c.fillRect(-10,8,20,3);c.beginPath();c.moveTo(-3,8);c.lineTo(0,-3);c.lineTo(3,8);c.stroke();
+  c.save();c.translate(0,-3);c.rotate(Math.sin(t/450)*.22);c.beginPath();c.moveTo(-11,0);c.lineTo(9,0);c.stroke();c.beginPath();c.arc(-11,2,4,-1.2,1.2);c.stroke();c.beginPath();c.arc(9,3,3.5,0,7);c.fill();c.restore();c.beginPath();c.moveTo(-11,-1);c.lineTo(-11,8);c.stroke();c.strokeStyle='#3a281a';c.lineWidth=1.5;c.beginPath();c.moveTo(6,8);c.lineTo(24,16);c.stroke();[[28,12],[40,12]].forEach(p=>{c.fillStyle='#9a9a9a';c.fillRect(p[0]-5,p[1]-7,10,14);c.strokeRect(p[0]-5,p[1]-7,10,14);c.fillStyle='#bdbdbd';c.fillRect(p[0]-5,p[1]-7,10,3)})}
+ else{c.strokeStyle='#14263a';c.fillStyle='#14263a';c.fillRect(-8,-13,16,8);c.fillStyle='#f2c200';c.fillRect(-6,-11,5,4);c.fillStyle='#14263a';c.fillRect(-3,-5,6,16);c.fillRect(-9,11,18,2);
+  c.beginPath();c.moveTo(-5,-15);c.lineTo(5,-15);c.stroke();c.strokeStyle='#f2c200';c.lineWidth=2;const a=t/200;c.beginPath();c.moveTo(-3,-1+((a*3)%5));c.lineTo(3,-3+((a*3)%5));c.stroke()}
+ c.restore()}
+const DIF={easy:{n:'Explorador',cap:2900000,rep:80,days:150,pr:.15,kick:.7,ex:0,d:'Zonas someras y presupuesto amplio.'},normal:{n:'Prospector',cap:2250000,rep:70,days:120,pr:.35,kick:1,ex:0,d:'Presupuesto base y riesgo habitual.'},hard:{n:'Veterano',cap:1650000,rep:65,days:90,pr:.5,kick:1.4,ex:1,d:'Poco margen de error y una trampa extra.'}};
+let DK='normal';const dif=()=>DIF[S.dif];
+function showMenu(){$('ov').style.display='none';$('br').style.display='none';$('mn').style.display='grid'}
+const TIPS={
+ grav:'GRAVIMETRÍA · Mide pequeñas variaciones de gravedad: las rocas densas pesan más. Un alto suave puede ser un anticlinal (una trampa); uno muy intenso, un cuerpo ígneo. Cómo se usa: marcá los 4 vértices del cuadrante (máx. 25 % del terreno). Un dron sobrevuela el área con el sensor. A escala regional la gravedad también refleja la cuenca (máximo sobre el eje de mayor espesor sedimentario): para anticlinales locales importa el residual. Cuesta 5 días.',
+ mag:'MAGNETOMETRÍA · Detecta rocas magnéticas, típicamente ígneas. Sirve para descartar falsos positivos de la gravimetría: si un alto de gravedad también es magnético, desconfiá. Un dron sobrevuela el cuadrante. 4 vértices, máx. 25 %, 5 días.',
+ geo:'GEOQUÍMICA DE SUPERFICIE · Mide metano en el suelo. Un halo o un pico puede indicar microfiltración desde una trampa… pero también una falla que pierde gas, y puede estar desplazado. Clic en el centro de un círculo chico. El equipo recorre a pie el círculo tomando muestras (dejan huellas). 1 día cada 5 muestras.',
+ out:'AFLORAMIENTOS · Rocas visibles en superficie. Su buzamiento (inclinación de las capas) delata la estructura: hacia afuera = anticlinal; hacia adentro = sinclinal. Clic sobre un “?”. Un geólogo camina hasta la roca (dejando huellas). Queda activa para 5 usos (1 día en total).',
+ seis:'SÍSMICA 2D · Una “ecografía” del subsuelo a lo largo de una línea. Los reflectores son contrastes entre rocas, no petróleo directo. Buscá capas arqueadas (cierres). Un reflector muy brillante aislado puede ser un intrusivo ígneo o una evaporita/caliza densa. 2 clics, 15 días.',
+ '3d':'SÍSMICA 3D · Un cubo de datos de un área: lo recorrés con cortes verticales. Marcá 4 vértices (máx. 34 % del terreno). Cuesta 30 días y US$ 140 k: usala donde ya tengas un candidato.',
+ drill:'PERFORACIÓN DE EXPLORACIÓN · Un pozo para comprobar. Registra rayos gamma (arcillas), resistividad (fluidos) y mide C.O.T. y Ro de la roca madre. Informa si hay hidrocarburo y si conviene extraerlo. Clic donde la sísmica mostró un cierre. 10 días.',
+ dev:'PERFORACIÓN DE EXPLOTACIÓN · Pozo productor sobre una trampa ya explorada. Solo conviene si la evaluación económica dice RENTABLE. 15 días, US$ 350 k.',
+ poi:'PUNTO DE INTERÉS · Marca un lugar para recordarlo (Interés 1, 2…). 1 día cada 2 puntos.',
+ sel:'Sin herramienta activa. Tocá un pozo del terreno para leer su informe en la mesa de trabajo.'};
+const GUIDE=[
+['Tu misión',`<p>Sos un <b>geólogo explorador</b> en la Cuenca Neuquina. Tu trabajo: <b>encontrar trampas con petróleo o gas</b>, confirmarlas con pozos y <b>extraer solo las que dan ganancia</b>.</p><p><b>Tres medidores arriba:</b> Capital (US$), Reputación ante tu jefe y Tiempo. Perdés si el capital o la reputación llegan a 0. El plazo es una <i>estimación</i>: cada día de más cuesta US$ 15 k, pero no termina la partida.</p><p>Cada acción gasta <b>días y dinero</b>. Pensá como en la vida real: primero lo barato y amplio, después lo caro y puntual.</p>`],
+['Cómo leer la pantalla',`<ul><li><b>Terreno 3D</b> (centro): arrastrá para girar el mapa sobre su eje e inclinarlo; rueda o pellizco para el zoom; clic derecho o dos dedos para desplazarte; ⟲ ⟳ giran de a pasos.</li><li><b>Herramientas</b>: los botones con los estudios. Tocá uno, leé su explicación y hacé clic en el terreno.</li><li><b>Capas</b>: sobre el terreno podés ver los mapas de gravimetría, magnetometría y geoquímica.</li><li><b>Primera pantalla</b>: el terreno y todas las herramientas juntos. <b>Segunda pantalla</b> (deslizá hacia abajo): la mesa de trabajo con la sísmica y los logs, los informes de cada estudio y pozo, y la bitácora de todo lo realizado.</li><li><b>Mentor</b>: debajo del terreno, te dice cuál es el próximo paso.</li></ul><p>Cada herramienta se apaga sola después de usarla.</p>`],
+['El método, paso a paso',`<ol><li><b>Reconocer</b>: Gravimetría y Magnetometría en una zona amplia (5 días c/u).</li><li><b>Indicios de superficie</b>: Geoquímica y Afloramientos.</li><li><b>Sísmica</b>: líneas 2D (baratas) y cubo 3D donde haya candidato.</li><li><b>Explorar</b>: pozo de exploración sobre el cierre.</li><li><b>Evaluar</b>: leé el informe: ¿es RENTABLE?</li><li><b>Extraer</b>: pozo de explotación solo si conviene.</li></ol><p><b>Regla de oro:</b> ningún estudio prueba nada por sí solo. Las pistas se confirman <i>cruzándolas</i>.</p>`],
+['Perforar y decidir',`<p><b>Exploración</b> (10 días): comprueba si hay hidrocarburo y mide la roca madre:</p><ul><li><b>C.O.T.</b> (carbono orgánico total): más de 2 % es buena roca madre.</li><li><b>Ro</b> (reflectancia de vitrinita): madurez. 0,7–1,3 % = ventana de petróleo; 1,3–2 % = gas húmedo; más de 2 % = gas seco.</li></ul><p>El C.O.T. y el Ro describen la roca madre de la cocina que carga la trampa. La <b>evaluación económica</b> (RENTABLE, MARGINAL o NO RENTABLE) combina esa carga con el espesor, la porosidad, el fluido y la profundidad del reservorio.</p><p><b>Explotación</b> (15 días): instala el pozo productor (bomba AIB y batería si es petróleo; PCP y gasoducto si es gas). Hacela solo en trampas rentables.</p><p>Si el pozo sale seco, el informe incluye los datos para <b>cerrarlo y abandonarlo</b> legalmente.</p><p><b>Presión anormal:</b> al atravesar lutitas compactadas, subí el peso del lodo si el gas entra, pero sin pasarte (fractura). Si se descontrola, cerrá el BOP.</p>`],
+['Trampas que engañan',`<ul><li><b>Espejismo sísmico</b>: un reflector muy brillante que en realidad es un intrusivo ígneo o una roca densa (evaporita o caliza).</li><li><b>Trampa con fuga</b>: parece cerrada, pero la falla está abierta y no retiene.</li><li><b>Trampa sin carga</b>: reservorio y sello perfectos, pero la roca madre nunca llegó a cargarla (mala sincronía o migración). Las fallas, además, pueden sellar o fugar.</li><li><b>Falso positivo geoquímico</b>: gas en superficie que no tiene trampa debajo.</li><li><b>Hay petróleo pero no conviene</b>: poca roca madre, baja porosidad o poco espesor.</li></ul><p>Tu defensa: <b>cruzar al menos tres evidencias independientes</b> antes de perforar.</p>`],
+['Tu primera partida',`<ol><li>Gravimetría: marcá 4 puntos en una zona grande.</li><li>Magnetometría en la misma zona.</li><li>Geoquímica sobre el máximo gravimétrico y revisá los afloramientos “?”.</li><li>Sísmica 2D que cruce el candidato; buscá un arco.</li><li>Pozo de exploración sobre el arco.</li><li>Leé el informe en la mesa de trabajo.</li><li>Si es RENTABLE, perforación de explotación.</li></ol><p>El <b>Mentor</b> te va indicando el paso siguiente. Podés reabrir esta guía con <b>Cómo jugar</b> y los términos con <b>Glosario</b>.</p>`]];
+const GLOSS=['Glosario',`<dl><dt>Anticlinal</dt><dd>Pliegue en arco de las capas; es la trampa más típica.</dd><dt>Trampa</dt><dd>Configuración de reservorio y sello que captura y retiene hidrocarburos: cierres en cuatro direcciones, contra falla, cuñas bajo discordancias, estratigráficas…</dd><dt>Roca madre</dt><dd>Roca rica en materia orgánica donde se genera el petróleo. En la cuenca: Los Molles, Vaca Muerta, Agrio y, en los márgenes, el Precuyano.</dd><dt>Reservorio</dt><dd>Roca porosa y permeable que almacena fluidos: areniscas (Tordillo, Mulichinco, Lajas), carbonatos (Quintuco–Loma Montosa, La Manga) y rocas volcánicas fracturadas.</dd><dt>Sello</dt><dd>Roca impermeable que impide el escape: evaporitas (Auquilco, Huitrín), pelitas marinas, niveles diagenéticos (Catriel) o fallas.</dd><dt>C.O.T.</dt><dd>Carbono orgánico total (% en peso): cuánta materia orgánica tiene la roca madre.</dd><dt>Ro</dt><dd>Reflectancia de vitrinita: mide la madurez térmica de la roca madre.</dd><dt>Buzamiento</dt><dd>Inclinación de las capas respecto de la horizontal.</dd><dt>Reflector</dt><dd>Superficie que refleja la onda sísmica por un contraste entre rocas.</dd><dt>Punto brillante</dt><dd>Reflector de amplitud muy alta; puede ser gas… o un intrusivo ígneo o una roca densa.</dd><dt>Rayos gamma</dt><dd>Registro del pozo: alto en arcillas, bajo en areniscas.</dd><dt>Resistividad</dt><dd>Registro del pozo: sube con hidrocarburos.</dd><dt>Pozo de exploración</dt><dd>Pozo para comprobar si hay hidrocarburo.</dd><dt>Pozo de explotación</dt><dd>Pozo productor en una trampa ya confirmada.</dd><dt>BOP</dt><dd>Válvula de seguridad que cierra el pozo ante un influjo.</dd><dt>VAN</dt><dd>Valor actual neto: ganancia esperada menos la inversión.</dd><dt>Sistema petrolero</dt><dd>Roca madre activa y todos sus hidrocarburos, con sus elementos (generadora, reservorio, sello, soterramiento) y procesos (generación, migración, entrampamiento, preservación).</dd><dt>Sincronía</dt><dd>La trampa debe existir antes de que llegue la carga de hidrocarburos; si no, queda vacía.</dd><dt>Migración</dt><dd>Recorrido de los hidrocarburos desde la roca madre hasta la trampa, a veces decenas de kilómetros.</dd><dt>Biodegradación</dt><dd>Alteración del petróleo en reservorios someros de los márgenes de la cuenca: queda más pesado.</dd></dl>`];
+let GD={k:'guide',i:0};
+function gdOpen(k){GD={k,i:0};gdR();$('gd').style.display='grid'}
+function gdR(){const P=GD.k=='guide'?GUIDE:[GLOSS],p=P[GD.i];$('gdT').textContent=p[0]+(P.length>1?'  ('+(GD.i+1)+'/'+P.length+')':'');$('gdP').innerHTML=p[1];$('gdPrev').style.display=GD.i>0?'block':'none';$('gdNext').style.display=GD.i<P.length-1?'block':'none';$('gdX').textContent=GD.k=='guide'&&GD.i==P.length-1?'Empezar a jugar':'Cerrar'}
+$('gdPrev').onclick=()=>{GD.i--;gdR()};$('gdNext').onclick=()=>{GD.i++;gdR()};$('gdX').onclick=()=>{$('gd').style.display='none'};
+const tutSeen=()=>{try{return localStorage.getItem('pnq_tut')=='1'}catch(e){return false}},tutMark=()=>{try{localStorage.setItem('pnq_tut','1')}catch(e){}};
+const pkx=F=>{if(!F)return null;let b=-1e9,bi=-1;F.forEach((v,i)=>{if(v===v&&v>b){b=v;bi=i}});return bi<0?null:{x:bi%W,y:bi/W|0}};
+function mentor(){if(!S)return;const st=[!!(S.grav||S.mag),!!(S.geo||S.outc.some(o=>o.seen)),S.lines.length+S.boxes.length>0,S.wells.some(w=>w.kind!='dev'),S.trs.some(t=>t.found),S.trs.some(t=>t.exploited)],nm=['Reconocer','Indicios','Sísmica','Explorar','Evaluar','Extraer'];
+ const dots=st.map((o,i)=>(o?'●':'○')+' '+nm[i]).join('  ');const g=pkx(S.grav),gs=g?q(g):'la zona estudiada';let t;
+ const pend=S.trs.find(x=>x.found&&!x.exploited&&x.econ.v=='RENTABLE'),lastDry=S.wells.filter(w=>w.kind!='dev').slice(-1)[0];
+ if(S.over)t='Partida finalizada: revisá la bitácora y los informes de pozos.';
+ else if(!S.grav&&!S.mag)t='Paso 1 · Reconocer: usá Gravimetría (5 días) marcando 4 puntos en una zona amplia. Es barata y muestra dónde hay rocas densas o estructuras.';
+ else if(S.grav&&!S.mag)t='Paso 1 · Cruzá con Magnetometría en la misma zona: si un alto de gravedad también es magnético, probablemente sea roca ígnea y no una trampa.';
+ else if(!S.grav)t='Paso 1 · Te falta la Gravimetría para cruzarla con la magnetometría.';
+ else if(!st[1])t='Paso 2 · Buscá indicios de superficie: Geoquímica (círculo chico) sobre el máximo gravimétrico que mediste ('+gs+') y afloramientos “?”: capas que buzan hacia afuera sugieren un anticlinal.';
+ else if(!st[2])t='Paso 3 · Sísmica: trazá una línea 2D (15 días) que cruce el '+gs+'. Buscá capas arqueadas; si ves un brillo muy fuerte, desconfiá (puede ser un intrusivo ígneo).';
+ else if(pend)t='Paso 6 · Extraer: la evaluación de la trampa explorada dice RENTABLE. Usá Perforación de explotación sobre ella.';
+ else if(!st[3])t='Paso 4 · Explorar: perforá un pozo de exploración (10 días) donde la sísmica muestre un cierre. Medirá C.O.T. y Ro de la roca madre.';
+ else if(lastDry&&!lastDry.ok&&!lastDry.prod)t='El último pozo no confirmó la trampa. Leé su informe para entender por qué (ígneo, fuga o sin trampa) y volvé a cruzar los estudios.';
+ else if(S.trs.some(x=>x.found&&x.econ.v!='RENTABLE'&&!x.exploited))t='La trampa explorada no es rentable: extraerla da poca o ninguna ganancia. Buscá las otras trampas del nivel.';
+ else t='Revisá el contador de pozos del HUD para ver cuántas trampas faltan, y seguí cruzando estudios en zonas nuevas.';
+ $('mentor').innerHTML='<div class="dots"></div><b>Mentor</b> · <span></span>';$('mentor').firstChild.textContent=dots;$('mentor').lastChild.textContent=S.lvl>=3&&!S.over?'Revisá el paso pendiente de la lista (el siguiente ○).':t}
+const LES={charge:'Una trampa perfecta puede estar vacía: sin carga (mala sincronía entre generación y trampa, o migración que no llegó) no hay hidrocarburo.',ign:'Un reflector sísmico muy brillante no siempre es hidrocarburo: puede ser un intrusivo ígneo o una roca densa (espejismo sísmico).',leak:'Una estructura cerrada puede perder: con una falla abierta no hay sello y el reservorio queda con agua.',none:'Perforar sin una trampa confirmada por varios estudios es una apuesta cara.',econ:'Encontrar hidrocarburo no alcanza: C.O.T., Ro, espesor y porosidad definen si conviene extraer.',good:'Cuando C.O.T., Ro y espesor acompañan, la trampa es rentable y vale la pena explotarla.',mud:'Si la presión de formación supera al lodo entra gas; subir el peso del lodo la controla, pero pasarse fractura la roca.'};
+const les=k=>{if(S.les)S.les.add(LES[k])},lesTxt=()=>S.les&&S.les.size?' Lo que aprendiste en este nivel: '+[...S.les].join(' · '):'';
+function pick(k){DK=k;LOG=[];ambient();$('mn').style.display='none';newGame();if(!tutSeen()){gdOpen('guide');tutMark()}}
+const SEC=[['Engolfamiento Neuquino, zona somera','Estratos poco profundos y estructuras suaves: el sector ideal para calibrar métodos antes de invertir en pozos.'],['Sector Añelo','Reservorios más profundos y más de una trampa: hay que priorizar dónde gastar los días.'],['Dorsal de Huincul','Alto estructural con fallas reactivadas: más trampas con fuga y más falsos positivos.'],['Faja plegada del Agrio','Plegamiento intenso, buzamientos fuertes y lutitas sobrepresionadas.'],['Sector profundo de Vaca Muerta','Reservorios profundos, lutitas muy compactadas y presiones anormales frecuentes.'],['Frontera de la cuenca','Datos escasos, estructuras sutiles y muchos falsos positivos: exploración de alto riesgo.']];
+function brief(){const s=[S.prof.name,S.prof.desc],D=dif();S.busy=true;$('brT').textContent='Nivel '+S.lvl+' · '+s[0];
+ $('brP').innerHTML='<p>'+s[1]+'</p><p><b>Perfil geológico:</b> reservorios típicos: '+S.prof.res.map(k=>RESD[k].n).join(', ')+'. Trampas: '+S.prof.traps.join(', ')+'. Techo del reservorio entre '+Math.round(S.z0-S.prof.rel[1])+' y '+Math.round(S.z0)+' m; profundidad máxima del pozo: '+S.prof.td+' m.</p><p><b>Complejidad:</b> '+'●'.repeat(Math.min(5,S.lvl))+'○'.repeat(5-Math.min(5,S.lvl))+' · '+S.trs.length+' trampa(s), presión anormal ≈ '+Math.round(Math.min(.9,dif().pr*(.4+.2*S.lvl))*100)+' % por pozo, evidencia de superficie '+(S.lvl<3?'clara':S.lvl<5?'reducida':'escasa')+'.</p><p><b>Dónde estamos parados</b><br>Dificultad: '+D.n+' ('+D.d+')<br>Capital: '+fmt(S.cap)+' · Reputación: '+Math.round(S.rep)+' / '+Math.round(S.rm)+'<br>Plazo estimado: '+Math.round((S.deadline-S.h)/24)+' días (cada día excedido cuesta US$ 15 k; no hace perder la partida)<br>Objetivo: explorar las '+S.trs.length+' trampa(s) (C.O.T. y Ro), evaluar si conviene extraer y poner en producción las rentables, sin fracturas ni blowouts.</p><p>'+(S.lvl>1?'Traés el capital y la reputación del nivel anterior con un aumento del 10 %.':'Campaña nueva: partís con el presupuesto base de la dificultad elegida.')+'</p><p style="color:var(--ln)">Sugerencia: cruzá gravimetría, magnetometría, geoquímica y afloramientos; confirmá con sísmica; explorá (C.O.T. y Ro), evaluá la rentabilidad y recién entonces extraé.</p><button onclick="gdOpen(\'guide\')">¿Cómo se juega? Guía paso a paso</button>';
+ add('Inicio de nivel',s[0]+' · '+S.trs.length+' trampa(s) · '+dif().n,null,0,0);$('br').style.display='grid'}
+$('brB').onclick=()=>{$('br').style.display='none';S.busy=false};
+function hzs(x,y){const z0=S.z0,R=zTop(x,y),dz=R-z0,iv=colIv(x,y),gi=G(S.ign,x,y),gt=TG(x,y),td=S.prof.td,h=[[z0*.25,.35],[z0*.45+dz*.5,-.4],[z0*.67+dz*.8,.5],[z0*.83+dz,-.5],[iv.seal[0],.8],[iv.res[0],gt>.3?-1.1:-.7],[iv.res[1],.5],[iv.src[1],.4],[Math.min(td-60,iv.src[1]+(td-iv.src[1])*.5),.5]];if(gi>.15)h.push([S.ign.z+30,1.6*gi+.2]);return h}
+const lp=(p,q,t)=>[p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t],qp=(P,u,v)=>lp(lp(P[0],P[1],u),lp(P[3],P[2],u),v);
+const polyA=P=>Math.abs(P.reduce((s,p,i)=>{const q=P[(i+1)%4];return s+p[0]*q[1]-q[0]*p[1]},0))/2;
+const polyOK=P=>{const c=P.map((p,i)=>{const q=P[(i+1)%4],r=P[(i+2)%4];return(q[0]-p[0])*(r[1]-q[1])-(q[1]-p[1])*(r[0]-q[0])});return c.every(v=>v>0)||c.every(v=>v<0)};
+function vib3(P,cb){const L=[[qp(P,0,.5),qp(P,1,.5)],[qp(P,.5,0),qp(P,.5,1)]];let i=0;(function nx(){if(i==2){cb();return}const[a,b]=L[i++];vibro(a,b,nx,2400)})()}
+function cube(P){const NX=28,NY=28,NZ=100,v=new Float32Array(NX*NY*NZ);
+ for(let i=0;i<NX;i++)for(let j=0;j<NY;j++){const q=qp(P,i/NX,j/NY),h=hzs(q[0],q[1]);
+  for(let k=0;k<NZ;k++){const d=k*S.prof.td/NZ;let a=(Math.random()-.5)*.25;for(const[z,A]of h){const u=(d-z)/(42*S.prof.td/3400);a+=A*(1-2*u*u)*Math.exp(-u*u)}v[(i*NY+j)*NZ+k]=Math.max(-1,Math.min(1,a))}}
+ S.cube={v,NX,NY,NZ,P};$('slw').style.display='block';$('sl').value=12;$('oTitle').textContent='Cubo sísmico 3D';showCube();
+ add('Sísmica 3D','cubo de '+(polyA(P)/(W*H)*100).toFixed(1)+' % del terreno',out.toDataURL());
+ say('Cubo adquirido. Con el deslizador movés un corte vertical a 90° y ves la sección interna del cubo; arriba hay un horizonte de referencia. Buscá cierres sobre el techo del reservorio y desconfiá de reflectores brillantes aislados: los colores son reflectores, no petróleo.')}
+function showCube(){const c=S.cube;if(!c)return;const{v,NX,NY,NZ}=c,t=$('thr').value/100,j0=Math.min(NY-1,+$('sl').value),fx=40,fy=118,cw=5,ch=1.4,dx=70,dy=50,hs=70;thrInfo(t,v.reduce((a,x)=>a+(Math.abs(x)>=t?1:0),0)/v.length);
+ const col=a=>{let k=lc(STS,(a+1)/2);if(Math.abs(a)<t){const g=(k[0]+k[1]+k[2])/3*.5;k=[g,g,g]}return'rgb('+(k[0]|0)+','+(k[1]|0)+','+(k[2]|0)+')'};
+ oc.setTransform(1,0,0,1,0,0);oc.fillStyle='#0b1622';oc.fillRect(0,0,400,270);
+ oc.setTransform(cw,0,dx/NY,-dy/NY,fx,fy);for(let i=0;i<NX;i++)for(let j=j0;j<NY;j++){oc.fillStyle=col(v[(i*NY+j)*NZ+hs]);oc.fillRect(i,j,1.06,1.06)}
+ oc.setTransform(dx/NY,-dy/NY,0,1,fx+NX*cw,fy);for(let j=j0;j<NY;j++)for(let k=0;k<NZ;k++){oc.fillStyle=col(v[((NX-1)*NY+j)*NZ+k]);oc.fillRect(j,k*ch,1.06,ch+.6)}
+ const ox=fx+j0*dx/NY,oy=fy-j0*dy/NY;oc.setTransform(1,0,0,1,ox,oy);for(let i=0;i<NX;i++)for(let k=0;k<NZ;k++){oc.fillStyle=col(v[(i*NY+j0)*NZ+k]);oc.fillRect(i*cw,k*ch,cw+.6,ch+.6)}
+ oc.setTransform(1,0,0,1,0,0);oc.strokeStyle='#fff';oc.lineWidth=1.2;oc.strokeRect(ox,oy,NX*cw,NZ*ch);
+ oc.fillStyle='#fff';oc.font='11px Segoe UI';oc.fillText('Corte vertical (90°) · '+Math.round(j0/(NY-1)*100)+' %',8,14);oc.fillText('Horizonte de referencia ≈ '+Math.round(hs*S.prof.td/100)+' m',fx+30,fy-dy-6);oc.fillText('Sección',ox+40,oy+NZ*ch+12);
+ for(let y=0;y<100;y++){oc.fillStyle=col(1-y/50);oc.fillRect(370,20+y,12,1.2)}oc.fillStyle='#fff';oc.fillText('+',385,30);oc.fillText('−',385,118)}
+
+function consult(){const dd=Math.round(rnd(25,50));if(!spend(dd*24,15000))return;
+ const cv=(F,o)=>F?F[Math.min(H-1,o.y|0)*W+Math.min(W-1,o.x|0)]:NaN,ok=v=>v===v,
+ top=F=>{if(!F)return null;let b=-1e9,bi=-1,mn=1e9,mx=-1e9;F.forEach((v,i)=>{if(v===v){mn=Math.min(mn,v);mx=Math.max(mx,v);if(v>b){b=v;bi=i}}});return bi<0?null:{x:bi%W,y:bi/W|0,n:(b-mn)/((mx-mn)||1),mn,mx}};
+ const g=top(S.grav),m=top(S.mag),e=top(S.geo),F=[];
+ if(g){const mv=cv(S.mag,g);F.push('En el cuadrante gravimétrico que estudiaste, el máximo está en el '+q(g)+' y es '+(g.n>.75?'intenso':'suave')+'. '+(ok(mv)?(((mv-m.mn)/((m.mx-m.mn)||1))>.6?'Ahí la magnetometría también es alta: sospecho un cuerpo ígneo denso, no una estructura con petróleo.':'Ahí la magnetometría es baja: es más compatible con una estructura sedimentaria.'):'En ese punto no tenés magnetometría, así que no puedo descartar un cuerpo ígneo.'))}
+ if(m)F.push('En la magnetometría, el valor más alto está en el '+q(m)+(m.n>.7?': respuesta fuerte, típica de roca ígnea.':': respuesta moderada, no concluyente.')+(ok(cv(S.grav,m))?'':' Sin gravimetría allí no puedo comparar densidades.'));
+ if(e)F.push('El mayor valor de metano que medís está en el '+q(e)+(e.n>.8?', muy concentrado: podría ser una falla que pierde gas.':', con un halo moderado: puede ser microfiltración.')+' Los aros son chicos y las anomalías se desplazan: no tomes ese punto como ubicación del pozo.');
+ if(S.seis){const z=S.seis;let hit=0,idx=-1;for(let i=0;i<z.NT;i++){let c=0;for(let r=0;r<z.NR;r++)if(Math.abs(z.amp[i*z.NR+r])>=.95)c++;if(c>4){hit++;if(idx<0)idx=i}}
+  if(hit){const p=lp(z.a,z.b,idx/z.NT);F.push('En la última línea sísmica hay un reflector muy brillante cerca del '+q({x:p[0],y:p[1]})+'. Puede ser hidrocarburo, un intrusivo ígneo o una roca densa: cruzalo con la magnetometría de esa zona.')}else F.push('La última línea sísmica no muestra anomalías de amplitud destacadas.')}
+ if(S.cube){const c=S.cube;let bi=-1,bc=0;for(let i=0;i<c.NX;i++)for(let j=0;j<c.NY;j++){let n=0;for(let k=0;k<c.NZ;k++)if(Math.abs(c.v[(i*c.NY+j)*c.NZ+k])>=.95)n++;if(n>bc){bc=n;bi=[i,j]}}
+  if(bc>4){const p=qp(c.P,bi[0]/c.NX,bi[1]/c.NY);F.push('En el cubo 3D, el reflector más brillante queda en el '+q({x:p[0],y:p[1]})+'. Subí el filtro de amplitud para ver si se mantiene; no basta para asegurar petróleo.')}else F.push('El cubo 3D no muestra reflectores anómalos fuertes.')}
+ S.wells.filter(w=>!w.retired&&w.kind!='dev').slice(-2).forEach(w=>F.push(w.ok?'El pozo del '+q(w)+' confirmó la trampa; falta decidir si conviene extraer.':w.prod?'':'El pozo del '+q(w)+' salió seco o inutilizable: no repitas ahí.'));
+ S.outc.filter(o=>o.seen).slice(0,2).forEach(o=>F.push('El afloramiento inspeccionado en el '+q(o)+' buza hacia el '+card(o.a)+'.'));
+ let t;if(!F.length)t='No tengo estudios tuyos para opinar. Hacé al menos un estudio y consultame sobre esa zona.';
+ else{const pick=F.filter(Boolean).sort(()=>Math.random()-.5).slice(0,3);let rec='';
+  if(g&&!S.mag)rec='Te recomiendo magnetometría sobre ese mismo cuadrante.';else if(m&&!S.grav)rec='Te recomiendo gravimetría sobre ese cuadrante.';
+  else if((g||m||e)&&!S.seis&&!S.cube)rec='Te recomiendo una sísmica 2D que cruce el '+q(g||m||e)+'.';else if((S.seis||S.cube)&&!S.wells.length)rec='Si la sísmica te convence, el siguiente paso es un pozo de exploración, sabiendo que nada es seguro.';
+  t=pick.join(' ')+' Solo opino de lo que estudiaste; en las zonas sin datos no puedo decir nada. '+rec}
+ say('Consultor ('+dd+' días de análisis): '+t);add('Consultor','consulta sobre '+F.length+' hallazgo(s) estudiado(s)',null)}
+let VW='surf',T3=null;const KEYS={};
+const hgt=(x,y)=>.9*Math.sin(x*.21+Math.sin(y*.3)*2)+.6*Math.sin(y*.17+x*.09)+.9*TG(x,y)+.8*G(S.ign,x,y)+1.6;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function view(v,q){VW=v;$('map').style.display=v=='map'?'block':'none';$('w3').style.display=v=='map'?'none':'block';
+ if(v=='map'){draw();return}
+ if(!init3()){say('No se pudo cargar Three.js (revisá la conexión). Se muestra el mapa 2D de respaldo.');view('map');return}
+ if(!T3.terr||T3.sid!==S){build3();reset3(true)}T3.sid=S;rs3();
+ if(!q)say('Superficie 3D: arrastrá para girar el mapa sobre su propio eje e inclinarlo; rueda o pellizco = zoom; clic derecho, Mayús+arrastre o dos dedos = desplazar; ⟲ ⟳ o Q/E = girar de a pasos. Las herramientas actúan con un clic sobre el terreno.')}
+function init3(){if(T3)return true;if(!window.THREE)return false;const w=$('w3'),sc=new THREE.Scene();sc.background=new THREE.Color(0x2a211a);
+ let ren;try{ren=new THREE.WebGLRenderer({antialias:true})}catch(e){return false}
+ ren.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));const el=ren.domElement,cam=new THREE.PerspectiveCamera(45,1.5,.5,600);w.appendChild(el);el.style.cssText='width:100%;height:100%;display:block;touch-action:none';
+ sc.add(new THREE.HemisphereLight(0xffffff,0x554433,.8));const dl=new THREE.DirectionalLight(0xfff0dd,.7);dl.position.set(-30,50,20);sc.add(dl);
+ const world=new THREE.Group(),inner=new THREE.Group();world.position.set(W/2,0,H/2);inner.position.set(-W/2,0,-H/2);world.add(inner);sc.add(world);
+ T3={sc,cam,ren,world,inner,c:{tx:W/2,tz:H/2,pitch:.85,zoom:42},yaw:0,yawT:0,dyn:new THREE.Group(),rc:new THREE.Raycaster(),sig:'',aib:[],tg:new THREE.Group(),lc:new Map(),lost:false,dm:new THREE.Object3D(),stN:0};
+ T3.dm.rotation.order='YXZ';inner.add(T3.dyn);
+ for(let i=0;i<3;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(1.4,.6,.7),new THREE.MeshLambertMaterial({color:0xf2c200}));T3.tg.add(m)}T3.tg.visible=false;inner.add(T3.tg);
+ {const dm=c=>new THREE.MeshLambertMaterial({color:c}),g=new THREE.Group(),bx=(a,b,c,col,x,y,z,r)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(a,b,c),dm(col));m.position.set(x,y,z);if(r)m.rotation.y=r;g.add(m);return m};
+  bx(1.1,.32,1.1,0x222222,0,0,0);bx(3.4,.1,.2,0x333333,0,.05,0,Math.PI/4);bx(3.4,.1,.2,0x333333,0,.05,0,-Math.PI/4);T3.rot=[];
+  [[1.2,1.2],[-1.2,1.2],[1.2,-1.2],[-1.2,-1.2]].forEach(p=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(.7,.7,.04,16),new THREE.MeshBasicMaterial({color:0xdddddd,transparent:true,opacity:.45}));m.position.set(p[0],.22,p[1]);g.add(m);T3.rot.push(m)});
+  const cm=new THREE.Mesh(new THREE.SphereGeometry(.24,8,8),dm(0x111111));cm.position.set(0,-.3,.3);g.add(cm);const led=new THREE.Mesh(new THREE.SphereGeometry(.1,6,6),new THREE.MeshBasicMaterial({color:0xff2222}));led.position.set(0,.2,-.55);g.add(led);
+  g.scale.set(1.4,1.4,1.4);g.visible=false;inner.add(g);T3.dr=g}
+ {const tg=new THREE.BufferGeometry();tg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(1200),3));tg.setDrawRange(0,0);T3.dtrail=new THREE.Line(tg,new THREE.LineBasicMaterial({color:0xffe14d}));T3.dtrail.frustumCulled=false;T3.dtrail.visible=false;inner.add(T3.dtrail)}
+ T3.stI=new THREE.InstancedMesh(new THREE.CircleGeometry(.22,8),new THREE.MeshBasicMaterial({color:0x2a1a10}),2000);T3.stI.count=0;T3.stI.frustumCulled=false;inner.add(T3.stI);
+ // controles: 1 dedo/botón izq = girar e inclinar · der/Mayús = desplazar · 2 dedos = zoom y desplazar
+ const P=new Map();let tap=null,last=null;const pinfo=()=>{const a=[...P.values()];return{d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)||1,cx:(a[0].x+a[1].x)/2,cy:(a[0].y+a[1].y)/2}};
+ el.onpointerdown=e=>{try{el.setPointerCapture(e.pointerId)}catch(_){}P.set(e.pointerId,{x:e.clientX,y:e.clientY,b:e.button,sh:e.shiftKey});tap=P.size==1?{m:0}:null;last=P.size==2?pinfo():null};
+ el.onpointermove=e=>{const p=P.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;if(tap)tap.m+=Math.abs(dx)+Math.abs(dy);
+  if(P.size==1){if(p.b==2||p.b==1||p.sh)pan3(dx,dy);else if(!tap||tap.m>4){T3.yaw+=dx*.008;T3.yawT=T3.yaw;T3.c.pitch=clamp(T3.c.pitch+dy*.005,.35,1.45)}}
+  else if(P.size==2){const q=pinfo();if(last){T3.c.zoom=clamp(T3.c.zoom*last.d/q.d,14,110);pan3(q.cx-last.cx,q.cy-last.cy)}last=q}};
+ const up=e=>{const wasTap=tap&&tap.m<6&&P.size==1&&e.type=='pointerup'&&(P.get(e.pointerId)||{}).b==0&&!(P.get(e.pointerId)||{}).sh;P.delete(e.pointerId);if(wasTap)pick3(e);tap=null;last=null};
+ el.onpointerup=up;el.onpointercancel=up;
+ el.oncontextmenu=e=>e.preventDefault();el.addEventListener('wheel',e=>{e.preventDefault();T3.c.zoom=clamp(T3.c.zoom*(1+e.deltaY*.001),14,110)},{passive:false});
+ el.addEventListener('webglcontextlost',e=>{e.preventDefault();T3.lost=true});el.addEventListener('webglcontextrestored',()=>{T3.lost=false;T3.sig='';if(T3.tex)T3.tex.needsUpdate=true;sync3()});
+ addEventListener('keydown',e=>{KEYS[e.key.toLowerCase()]=1});addEventListener('keyup',e=>{KEYS[e.key.toLowerCase()]=0});
+ if(window.ResizeObserver)new ResizeObserver(()=>rs3()).observe(w);else addEventListener('resize',rs3);requestAnimationFrame(loop3);return true}
+function rs3(){if(!T3)return;const w=$('w3'),cw=w.clientWidth;if(!cw)return;T3.ren.setSize(cw,cw/1.5,false)}
+function pan3(dx,dy){const c=T3.c,k=c.zoom*.0022;c.tx=clamp(c.tx-dx*k,W*.1,W*.9);c.tz=clamp(c.tz-dy*k,H*.1,H*.9)}
+function rot3(d){if(T3)T3.yawT+=d*.4}
+function zoom3(d){if(T3)T3.c.zoom=clamp(T3.c.zoom*(1+d*.2),14,110)}
+function reset3(now){if(!T3)return;T3.yawT=0;if(now)T3.yaw=0;Object.assign(T3.c,{tx:W/2,tz:H/2,pitch:.85,zoom:42})}
+function pick3(e){const T=T3;if(!T||!T.terr||VW=='map')return;const r=T.ren.domElement.getBoundingClientRect();T.world.updateMatrixWorld(true);T.cam.updateMatrixWorld(true);
+ T.rc.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1),T.cam);const h=T.rc.intersectObject(T.terr)[0];if(h){const p=T.inner.worldToLocal(h.point.clone());act(p.x,p.z)}}
+function build3(){const T=T3;if(!T.tc){T.tc=document.createElement('canvas');T.tc.width=624;T.tc.height=416;T.tex=new THREE.CanvasTexture(T.tc);T.tex.generateMipmaps=false;T.tex.minFilter=THREE.LinearFilter}
+ if(T.terr){T.inner.remove(T.terr);T.terr.geometry.dispose();T.terr.material.dispose()}
+ const g=new THREE.PlaneGeometry(W,H,W*2,H*2);g.rotateX(-Math.PI/2);g.translate(W/2,0,H/2);const p=g.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,hgt(p.getX(i),p.getZ(i)));
+ g.computeVertexNormals();T.terr=new THREE.Mesh(g,new THREE.MeshLambertMaterial({map:T.tex}));T.inner.add(T.terr);T.sig='';sync3()}
+function clearDyn(){const D=T3.dyn;D.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&!(o.material.userData&&o.material.userData.keep))(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose())});while(D.children.length)D.remove(D.children[0])}
+function sync3(){const T=T3;if(!T||!T.terr)return;const sig=[S.layer,!!S.grav,!!S.mag,!!S.geo,S.wells.length,S.wells.map(w=>(w.prod?2:0)+(w.rig?1:0)+(w.retired?4:0)).join(''),S.outc.filter(o=>o.seen).length,S.lines.length,S.boxes.length,S.pois.length,S.nst,S.pts.length,S.review?1:0].join('|');if(sig==T.sig)return;T.sig=sig;
+ const f=S[S.layer],st=S.layer=='geo'?STG:STM,tx=T.tc.getContext('2d');tx.drawImage(terr,0,0);
+ if(f){const V=f.filter(v=>v===v),mn=Math.min(...V),mx=Math.max(...V),hc=document.createElement('canvas');hc.width=W;hc.height=H;const hx=hc.getContext('2d'),im=hx.createImageData(W,H);
+  f.forEach((v,i)=>{if(v!==v)return;const k=lc(st,(v-mn)/(mx-mn));im.data.set([k[0],k[1],k[2],200],i*4)});hx.putImageData(im,0,0);tx.imageSmoothingEnabled=true;tx.drawImage(hc,0,0,624,416)}
+ T.tex.needsUpdate=true;
+ const D=T.dyn,Y=hgt;clearDyn();if(T.lc.size>120){T.lc.forEach(m=>{if(m.map)m.map.dispose();m.dispose()});T.lc.clear()}T.aib=[];
+ const M=(c,wf)=>new THREE.MeshLambertMaterial({color:c,wireframe:!!wf}),B=(a,b,c,col,x,y,z,par)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(a,b,c),M(col));m.position.set(x,y,z);(par||D).add(m);return m};
+ S.wells.forEach(w=>{if(w.retired)return;const g=new THREE.Group();g.position.set(w.x,Y(w.x,w.y),w.y);D.add(g);
+  if(!w.prod&&!w.rig&&!w.ok){B(2.6,.35,.35,0x7a1f1f,0,.3,0,g);B(.35,.35,2.6,0x7a1f1f,0,.3,0,g)}
+  else if(!w.prod){const m=new THREE.Mesh(new THREE.ConeGeometry(.9,3.6,4),M(w.rig||w.ok?0x14263a:0x7a1f1f,1));m.position.y=1.8;g.add(m);B(.5,.4,.5,w.rig?0xd0561f:0x7a1f1f,0,3.7,0,g)}
+  else if(w.type=='oil'){B(1.8,.2,.9,0x14263a,0,.1,0,g);B(.2,1.5,.2,0x14263a,0,.9,0,g);const bm=new THREE.Group();bm.position.y=1.6;g.add(bm);B(2.4,.16,.2,0xd0561f,0,0,0,bm);B(.35,.5,.3,0xd0561f,-1.2,-.1,0,bm);B(.4,.4,.3,0x14263a,1.2,-.1,0,bm);T.aib.push(bm);[[3,1.6],[4.4,1.6]].forEach(p=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(.6,.6,1.2,12),M(0x9a9a9a));m.position.set(p[0],.6,p[1]);g.add(m)});B(2.6,.1,.1,0x3a281a,1.7,.15,.8,g)}
+  else{const c=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,1.6,8),M(0x14263a));c.position.y=.8;g.add(c);B(.9,.6,.9,0xf2c200,0,1.9,0,g);B(.3,.5,.3,0x14263a,0,2.4,0,g);
+   const pts=[];for(let x=w.x;x<W;x+=1)pts.push(new THREE.Vector3(x,Y(x,w.y)+.2,w.y));pts.push(new THREE.Vector3(W,Y(W,w.y)+.2,w.y));D.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),48,.13,5,false),M(0xffd400)))}});
+ S.outc.forEach(o=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(1,1,.3,10),M(0x8b3a2a));m.scale.set(o.rx/9,1,o.ry/9);m.rotation.y=o.rot;m.position.set(o.x,Y(o.x,o.y)+.1,o.y);D.add(m);
+  if(o.seen)D.add(new THREE.ArrowHelper(new THREE.Vector3(Math.cos(o.a),0,Math.sin(o.a)),new THREE.Vector3(o.x,Y(o.x,o.y)+.7,o.y),3.5,0xffffff))});
+ const LM=new THREE.LineBasicMaterial({color:0xffd400});
+ S.lines.forEach(l=>{const q=[];for(let t=0;t<=1;t+=.05){const x=l[0]+(l[2]-l[0])*t,y=l[1]+(l[3]-l[1])*t;q.push(new THREE.Vector3(x,Y(x,y)+.4,y))}D.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(q),LM))});
+ S.boxes.forEach(P=>{const V=p=>new THREE.Vector3(p[0],Y(p[0],p[1])+.5,p[1]);D.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(P.map(V)),LM));[[qp(P,0,.5),qp(P,1,.5)],[qp(P,.5,0),qp(P,.5,1)]].forEach(l=>D.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(l.map(V)),LM)))});
+ S.pois.forEach(p=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.35,8,8),M(0xffffff));m.position.set(p.x,Y(p.x,p.y)+.5,p.y);D.add(m);spr(p.n,p.x,Y(p.x,p.y)+1.7,p.y,'#fff',4.4,1.1)});
+ S.pts.forEach(p=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.4,8,8),M(0xffffff));m.position.set(p[0],Y(p[0],p[1])+.6,p[1]);D.add(m)});
+ (S.geoC||[]).forEach(c=>ring(c[0],c[1],c[2],0xdd0000));
+ if(S.geoPts&&S.geoPts.length){D.add(new THREE.Points(new THREE.BufferGeometry().setFromPoints(S.geoPts.map(p=>new THREE.Vector3(p[0],Y(p[0],p[1])+.3,p[1]))),new THREE.PointsMaterial({color:0xdd0000,size:.45})))}
+ S.wells.forEach(w=>{if(w.retired)return;spr(w.prod?(w.type=='oil'?'AIB · batería':'PCP · gasoducto'):w.rig?'perforando':w.ok?'explor. ✓':'seco',w.x,Y(w.x,w.y)+4.6,w.y,'#fff',4.6,1.1)});
+ S.outc.forEach(o=>spr(o.seen?o.short:'?',o.x,Y(o.x,o.y)+1.5,o.y,'#fff',o.seen?4.4:1.2,o.seen?1.1:1.2));
+ if(S.review)[[S.leak,'Falla con fuga',0xff5a5a],[S.ign,'Intrusivo ígneo',0xc77dff]].concat(S.trs.map(t=>[t,'Trampa · '+(t.fluid=='oil'?'petróleo':'gas')+' · '+t.econ.v,0x5ad17a])).forEach(([o,n,c])=>{ring(o.x,o.y,o.r*.8,c);spr(n,o.x,Y(o.x,o.y)+6,o.y,'#fff',8,1.2)})}
+function spr(t,x,y,z,col,sw,sh){const T=T3,key=t+'|'+col+'|'+sw+'|'+sh;let mat=T.lc.get(key);
+ if(!mat){const c=document.createElement('canvas');c.width=320;c.height=Math.round(320*sh/sw);const g=c.getContext('2d');g.fillStyle='rgba(30,20,12,.65)';g.fillRect(0,0,c.width,c.height);g.font='bold '+Math.round(c.height*.55)+'px Segoe UI,sans-serif';g.fillStyle=col;g.textAlign='center';g.textBaseline='middle';g.fillText(t,c.width/2,c.height/2,c.width-8);
+  mat=new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false});mat.userData={keep:1};T.lc.set(key,mat)}
+ const m=new THREE.Sprite(mat);m.scale.set(sw,sh,1);m.position.set(x,y,z);m.renderOrder=10;T.dyn.add(m)}
+function ring(x,y,r,col){const q=[];for(let i=0;i<48;i++){const a=i/48*6.2832,px=x+Math.cos(a)*r,pz=y+Math.sin(a)*r;q.push(new THREE.Vector3(px,hgt(px,pz)+.4,pz))}T3.dyn.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(q),new THREE.LineBasicMaterial({color:col})))}
+function loop3(t){requestAnimationFrame(loop3);const T=T3;if(!T||!S||VW=='map'||!T.terr||T.lost)return;const c=T.c;
+ if(document.activeElement.tagName!='INPUT'){const sp=c.zoom*.012;if(KEYS.w||KEYS.arrowup)c.tz=clamp(c.tz-sp,H*.1,H*.9);if(KEYS.s||KEYS.arrowdown)c.tz=clamp(c.tz+sp,H*.1,H*.9);if(KEYS.a||KEYS.arrowleft)c.tx=clamp(c.tx-sp,W*.1,W*.9);if(KEYS.d||KEYS.arrowright)c.tx=clamp(c.tx+sp,W*.1,W*.9);if(KEYS.q)T.yawT-=.03;if(KEYS.e)T.yawT+=.03}
+ T.yaw+=(T.yawT-T.yaw)*.25;T.world.rotation.y=T.yaw;const cp=Math.cos(c.pitch);
+ T.cam.position.set(c.tx,Math.sin(c.pitch)*c.zoom,c.tz+cp*c.zoom);T.cam.lookAt(c.tx,0,c.tz);
+ T.aib.forEach(b=>b.rotation.z=Math.sin(t/450)*.2);
+ const k=S.trk;T.tg.visible=!!k;if(k){const ang=Math.atan2(k.b[1]-k.a[1],k.b[0]-k.a[0]);T.tg.children.forEach((m,j)=>{const q=Math.max(0,k.p-j*.07),x=k.a[0]+(k.b[0]-k.a[0])*q,y=k.a[1]+(k.b[1]-k.a[1])*q;m.position.set(x,hgt(x,y)+.5,y);m.rotation.y=-ang})}
+ {const dz=S.fx&&S.fx.t=='drone'?S.fx:null;T.dr.visible=T.dtrail.visible=!!dz;
+  if(dz){const h=hgt(dz.x,dz.y)+3.4+Math.sin(t/300)*.15;T.dr.position.set(dz.x,h,dz.y);T.dr.rotation.z=Math.sin(t/500)*.05;T.rot.forEach(r=>r.rotation.y+=.9);
+   const pa=T.dtrail.geometry.attributes.position,n=Math.min(dz.trail.length,400);for(let i=0;i<n;i++){const p=dz.trail[i];pa.array[i*3]=p[0];pa.array[i*3+1]=hgt(p[0],p[1])+3.2;pa.array[i*3+2]=p[1]}pa.needsUpdate=true;T.dtrail.geometry.setDrawRange(0,n)}
+  if(S.steps.length<T.stN){T.stN=0;T.stI.count=0}
+  while(T.stN<S.steps.length&&T.stN<2000){const st=S.steps[T.stN],d=T.dm;d.position.set(st.x,hgt(st.x,st.y)+.08,st.y);d.rotation.set(-Math.PI/2,-st.a,0);d.scale.set(1.2,.55,1);d.updateMatrix();T.stI.setMatrixAt(T.stN,d.matrix);T.stN++;T.stI.count=T.stN;T.stI.instanceMatrix.needsUpdate=true}}
+ T.ren.render(T.sc,T.cam)}
+{const _d=draw;draw=function(){_d();if(T3&&VW!='map')sync3()}}
+buildTerrain();showMenu();setInterval(()=>{if(S&&!S.busy&&!S.over&&S.wells.some(w=>w.prod))draw()},150);
+</script></body></html>
